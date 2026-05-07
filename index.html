@@ -41,7 +41,986 @@
   @keyframes cel-in { from {opacity:0;} to {opacity:1;} }
   @keyframes cel-pop { 0% {transform: scale(0.4); opacity:0;} 50% {transform: scale(1.1);} 100% {transform: scale(1); opacity:1;} }
   @keyframes slide-down { from {transform: translateY(-20px); opacity: 0;} to {transform: translateY(0); opacity: 1;} }
+  @keyframes confetti-fall { 0% { transform: translate3d(0,0,0) rotate(0deg); opacity: 1; } 100% { transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--rot)); opacity: 0; } }
+  @keyframes ring-draw { from { stroke-dashoffset: var(--ring-circ); } to { stroke-dashoffset: var(--ring-target); } }
   input[type="date"] { color-scheme: dark; }
+</style>
+
+<!-- ============================================================ -->
+<!-- ТЕМЫ ДИЗАЙНА — переключатель сверху справа.                  -->
+<!-- Все оригинальные inline-стили перебиваются через [style*=]   -->
+<!-- + !important. Логика приложения не меняется.                 -->
+<!-- ============================================================ -->
+
+<!-- Шрифты для тем -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Caveat:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Раннее применение темы из localStorage (избегаем FOUC) -->
+<script>
+  (function() {
+    document.documentElement.setAttribute('data-theme', 'fresh');
+    try { localStorage.setItem('kp_theme', 'fresh'); } catch(e) {}
+  })();
+</script>
+
+<style id="theme-overrides">
+html[data-theme="fresh"] {
+  --bg: #14181f;
+  --bg-grad: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,122,60,0.08) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(120,180,220,0.05) 0%, transparent 60%), #14181f;
+  --surface: #1d2229;
+  --surface-2: #242a34;
+  --surface-3: #2e3542;
+  --border: #2c3340;
+  --border-2: #3d4658;
+  --text-1: #f4ede0;
+  --text-2: #d8d1c2;
+  --text-3: #9a9384;
+  --text-4: #6c675e;
+  --text-5: #44413c;
+  --accent: #ff7a3c;
+  --accent-2: #d35a1e;
+  --accent-grad: linear-gradient(135deg, #ff7a3c 0%, #ffb070 100%);
+  --accent-fg: #14181f;
+  --accent-soft: rgba(255,122,60,0.14);
+  --tabbar: rgba(20,24,31,0.92);
+  --tabbar-border: #2c3340;
+  --modal: linear-gradient(180deg, #1d2229, #14181f);
+  --input: #14181f;
+  --input-border: #2c3340;
+  --font: 'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --r-card: 14px;
+  --r-card-2: 12px;
+  --r-btn: 10px;
+  --ink: #f4ede0;
+}
+
+html[data-theme="fresh"] body { letter-spacing: -0.005em; }
+html[data-theme="fresh"] [style*="font-weight: 700"],
+html[data-theme="fresh"] [style*="font-weight:700"],
+html[data-theme="fresh"] [style*="font-weight: 800"] { letter-spacing: -0.02em !important; }
+
+/* Цифры в XP/уровнях — моноширинные */
+html[data-theme="fresh"] [style*="font-size: 22px"][style*="-webkit-background-clip"],
+html[data-theme="fresh"] [style*="font-size: 20px"][style*="font-weight: 800"] {
+  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+  font-feature-settings: "tnum" !important;
+}
+
+/* Кнопка переключателя тем — спрятать */
+#kp-theme-toggle { display: none !important; }
+
+/* ============== АНИМАЦИИ ============== */
+
+@keyframes fr-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fr-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes fr-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,122,60,0.40); }
+  50%      { box-shadow: 0 0 0 10px rgba(255,122,60,0); }
+}
+@keyframes fr-bounce-in {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes fr-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+@keyframes fr-spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes fr-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(-1.5deg); }
+  75%      { transform: rotate(1.5deg); }
+}
+@keyframes fr-flame-flicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); filter: drop-shadow(0 0 4px rgba(255,140,60,0.6)); }
+  50%      { transform: scale(1.12) rotate(3deg); filter: drop-shadow(0 0 8px rgba(255,180,80,0.9)); }
+}
+@keyframes fr-progress-fill {
+  from { width: 0%; }
+}
+
+/* Глобальные плавные переходы */
+html[data-theme="fresh"] * {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+html[data-theme="fresh"] input,
+html[data-theme="fresh"] textarea,
+html[data-theme="fresh"] select { transition: border-color 0.2s ease, box-shadow 0.2s ease !important; }
+
+/* Карточки — выезжают снизу */
+html[data-theme="fresh"] [style*="border-radius: 12px"],
+html[data-theme="fresh"] [style*="border-radius: 14px"],
+html[data-theme="fresh"] [style*="border-radius: 16px"],
+html[data-theme="fresh"] [style*="border-radius:16px"] {
+  animation: fr-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Нажатие на любые кнопки — пружинящий сквиш */
+html[data-theme="fresh"] button:not(#kp-theme-toggle button):active {
+  transform: scale(0.94) !important;
+  transition: transform 0.08s ease !important;
+}
+html[data-theme="fresh"] button:not(#kp-theme-toggle button):hover {
+  transform: translateY(-2px) !important;
+  filter: brightness(1.06);
+}
+
+/* CTA-градиент — бегущий блик + пульс */
+html[data-theme="fresh"] [style*="linear-gradient(135deg,#A78BFA,#FF4DD8)"],
+html[data-theme="fresh"] [style*="linear-gradient(135deg, #A78BFA, #FF4DD8)"],
+html[data-theme="fresh"] [style*="linear-gradient(90deg, #A78BFA, #FF4DD8)"],
+html[data-theme="fresh"] [style*="linear-gradient(90deg,#A78BFA,#FF4DD8)"] {
+  background: var(--accent-grad) !important;
+  background-size: 200% 100% !important;
+  animation: fr-shimmer 3.5s linear infinite !important;
+  position: relative;
+}
+
+/* Прогресс-бары — разъезжаются из нуля */
+html[data-theme="fresh"] [style*="height: 6px"][style*="border-radius: 99"],
+html[data-theme="fresh"] [style*="height:6px"][style*="border-radius"],
+html[data-theme="fresh"] [style*="height: 8px"][style*="width:"][style*="%"] {
+  animation: fr-progress-fill 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* XP-число — bounce-in при появлении */
+html[data-theme="fresh"] [style*="-webkit-text-fill-color: transparent"] {
+  animation: fr-bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Эмодзи сфер — покачиваются */
+html[data-theme="fresh"] [style*="text-shadow: 0 0 12px"],
+html[data-theme="fresh"] [style*="text-shadow:0 0 12px"] {
+  animation: fr-float 3s ease-in-out infinite;
+  display: inline-block;
+}
+
+/* Огоньки streak 🔥 — мерцают */
+html[data-theme="fresh"] span:has-text("🔥") { animation: fr-flame-flicker 1.4s ease-in-out infinite; }
+
+/* Таб-бар — активный таб пульсирует */
+html[data-theme="fresh"] [style*="color: #A78BFA"][style*="border: none"],
+html[data-theme="fresh"] button.active {
+  position: relative;
+}
+html[data-theme="fresh"] [style*="color: #A78BFA"][style*="border: none"]::after {
+  content: '';
+  position: absolute;
+  bottom: 6px; left: 50%;
+  width: 4px; height: 4px;
+  background: var(--accent);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  animation: fr-pulse-glow 1.6s ease-in-out infinite;
+}
+
+/* Модаль — появление с размахом */
+html[data-theme="fresh"] [style*="linear-gradient(180deg, #150a25, #0a0612)"],
+html[data-theme="fresh"] [style*="linear-gradient(180deg,#150a25,#0a0612)"] {
+  animation: fr-bounce-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+
+/* Toast — slide-down */
+@keyframes fr-toast {
+  0%   { transform: translateX(-50%) translateY(-40px); opacity: 0; }
+  10%  { transform: translateX(-50%) translateY(0); opacity: 1; }
+  90%  { transform: translateX(-50%) translateY(0); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-40px); opacity: 0; }
+}
+
+/* Разовый «blob»-фон — ленивое дыхание */
+@keyframes fr-breathe {
+  0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.6; }
+  50%      { transform: scale(1.15) translate(2%, -1%); opacity: 1; }
+}
+html[data-theme="fresh"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 40% at 80% 20%, rgba(255,122,60,0.10), transparent 70%);
+  animation: fr-breathe 12s ease-in-out infinite;
+  z-index: 0;
+}
+html[data-theme="fresh"] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 40% 35% at 10% 90%, rgba(120,180,220,0.08), transparent 70%);
+  animation: fr-breathe 16s ease-in-out infinite reverse;
+  z-index: 0;
+}
+html[data-theme="fresh"] #app-root { position: relative; z-index: 1; }
+
+/* Первый фокус на инпутах — свечение в цвете акцента */
+html[data-theme="fresh"] textarea:focus,
+html[data-theme="fresh"] input:focus,
+html[data-theme="fresh"] select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(255,122,60,0.18) !important;
+  outline: none !important;
+}
+/* ============== ПЕРЕМЕННЫЕ ПО ТЕМАМ ============== */
+
+html[data-theme="pro"] {
+  --bg: #f4f5f7;
+  --bg-grad: linear-gradient(180deg, #f7f8fa 0%, #eef0f4 100%);
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #f1f4f8;
+  --border: #e2e6ec;
+  --border-2: #cdd3dc;
+  --text-1: #0f172a;
+  --text-2: #334155;
+  --text-3: #64748b;
+  --text-4: #94a3b8;
+  --text-5: #cbd5e1;
+  --accent: #2553d6;
+  --accent-2: #1742a8;
+  --accent-grad: linear-gradient(135deg, #2553d6, #1742a8);
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(37,83,214,0.10);
+  --tabbar: rgba(255,255,255,0.92);
+  --tabbar-border: #e2e6ec;
+  --modal: linear-gradient(180deg, #ffffff, #f5f7fa);
+  --input: #ffffff;
+  --input-border: #d1d6df;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --r-card: 10px;
+  --r-card-2: 8px;
+  --r-btn: 8px;
+}
+
+html[data-theme="creative"] {
+  /* Дефолт — палитра «Vermillion» (тёмная ламповая) */
+  --bg: #2a1810;
+  --bg-grad: radial-gradient(ellipse at 20% 10%, rgba(220,120,60,0.18) 0px, transparent 50%), radial-gradient(ellipse at 80% 90%, rgba(180,90,40,0.12) 0px, transparent 50%), #2a1810;
+  --surface: #3a2418;
+  --surface-2: #432a1c;
+  --surface-3: #4e3322;
+  --border: #6b4a30;
+  --border-2: #5a3d28;
+  --text-1: #f5e6d0;
+  --text-2: #e8d2b2;
+  --text-3: #c8a878;
+  --text-4: #a08660;
+  --text-5: #7a6448;
+  --accent: #d97742;
+  --accent-2: #b85a28;
+  --accent-grad: linear-gradient(135deg, #d97742 0%, #e8a35a 100%);
+  --accent-fg: #1a0f08;
+  --accent-soft: rgba(217,119,66,0.20);
+  --tabbar: #1f1108;
+  --tabbar-border: #6b4a30;
+  --modal: linear-gradient(180deg, #3a2418, #2a1810);
+  --input: #1f1108;
+  --input-border: #6b4a30;
+  --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: 'Caveat', cursive;
+  --r-card: 22px;
+  --r-card-2: 18px;
+  --r-btn: 999px;
+  --ink: #f5e6d0;
+}
+
+/* ---- Палитры (все тёмные, ламповые) ---- */
+
+/* 1. Vermillion — какао + медь */
+html[data-theme="creative"][data-palette="vermillion"] {
+  --bg: #2a1810; --bg-grad: radial-gradient(ellipse at 20% 10%, rgba(220,120,60,0.22), transparent 55%), radial-gradient(ellipse at 80% 90%, rgba(180,90,40,0.15), transparent 55%), #2a1810;
+  --surface: #3a2418; --surface-2: #432a1c; --surface-3: #4e3322;
+  --border: #6b4a30; --border-2: #5a3d28;
+  --text-1: #f5e6d0; --text-2: #e8d2b2; --text-3: #c8a878; --text-4: #a08660; --text-5: #7a6448;
+  --accent: #d97742; --accent-2: #b85a28;
+  --accent-grad: linear-gradient(135deg, #d97742 0%, #e8a35a 100%);
+  --accent-fg: #1a0f08; --accent-soft: rgba(217,119,66,0.22);
+  --tabbar: #1f1108; --tabbar-border: #6b4a30;
+  --modal: linear-gradient(180deg, #3a2418, #2a1810);
+  --input: #1f1108; --input-border: #6b4a30; --ink: #f5e6d0;
+}
+
+/* 2. Sunset — пурпурно-розовый закат */
+html[data-theme="creative"][data-palette="sunset"] {
+  --bg: #2a0e26; --bg-grad: radial-gradient(ellipse at 10% 0%, rgba(255,140,90,0.22), transparent 55%), radial-gradient(ellipse at 90% 100%, rgba(180,60,140,0.20), transparent 55%), #2a0e26;
+  --surface: #3a1430; --surface-2: #441838; --surface-3: #501e42;
+  --border: #7a3868; --border-2: #62294f;
+  --text-1: #ffe8dc; --text-2: #f5cbb8; --text-3: #d49a92; --text-4: #a87478; --text-5: #7c5560;
+  --accent: #ff8a5b; --accent-2: #e0613a;
+  --accent-grad: linear-gradient(135deg, #ff8a5b 0%, #ff4d8f 100%);
+  --accent-fg: #1a0612; --accent-soft: rgba(255,138,91,0.22);
+  --tabbar: #1c0818; --tabbar-border: #7a3868;
+  --modal: linear-gradient(180deg, #3a1430, #2a0e26);
+  --input: #1c0818; --input-border: #7a3868; --ink: #ffe8dc;
+}
+
+/* 3. Aurora — северное сияние, тёмно-синий + бирюза */
+html[data-theme="creative"][data-palette="aurora"] {
+  --bg: #0a1830; --bg-grad: radial-gradient(ellipse at 0% 0%, rgba(60,200,180,0.20), transparent 55%), radial-gradient(ellipse at 100% 100%, rgba(120,80,220,0.18), transparent 55%), #0a1830;
+  --surface: #102240; --surface-2: #142a4e; --surface-3: #1a3360;
+  --border: #2e5a8a; --border-2: #244878;
+  --text-1: #d8f0f5; --text-2: #b8dde6; --text-3: #88b4c4; --text-4: #608ba0; --text-5: #406478;
+  --accent: #3ad6c8; --accent-2: #1ea89a;
+  --accent-grad: linear-gradient(135deg, #3ad6c8 0%, #5a8eff 100%);
+  --accent-fg: #04121a; --accent-soft: rgba(58,214,200,0.20);
+  --tabbar: #06122a; --tabbar-border: #2e5a8a;
+  --modal: linear-gradient(180deg, #102240, #0a1830);
+  --input: #06122a; --input-border: #2e5a8a; --ink: #d8f0f5;
+}
+
+/* 4. Lava — почти-чёрный + раскалённый оранжевый */
+html[data-theme="creative"][data-palette="lava"] {
+  --bg: #0e0a08; --bg-grad: radial-gradient(ellipse at 30% 0%, rgba(255,80,30,0.18), transparent 55%), radial-gradient(ellipse at 80% 100%, rgba(220,40,40,0.14), transparent 55%), #0e0a08;
+  --surface: #1a1310; --surface-2: #211816; --surface-3: #2c1f1c;
+  --border: #5a3024; --border-2: #44231a;
+  --text-1: #ffece0; --text-2: #f0c8b0; --text-3: #c89880; --text-4: #946850; --text-5: #644430;
+  --accent: #ff5530; --accent-2: #d83814;
+  --accent-grad: linear-gradient(135deg, #ff5530 0%, #ffaa30 100%);
+  --accent-fg: #14060a; --accent-soft: rgba(255,85,48,0.22);
+  --tabbar: #060403; --tabbar-border: #5a3024;
+  --modal: linear-gradient(180deg, #1a1310, #0e0a08);
+  --input: #060403; --input-border: #5a3024; --ink: #ffece0;
+}
+
+/* 5. Forest — лесной мох + ядовитый лайм */
+html[data-theme="creative"][data-palette="forest"] {
+  --bg: #0e1c12; --bg-grad: radial-gradient(ellipse at 20% 0%, rgba(140,200,60,0.18), transparent 55%), radial-gradient(ellipse at 100% 100%, rgba(200,180,60,0.12), transparent 55%), #0e1c12;
+  --surface: #16281a; --surface-2: #1c3220; --surface-3: #243d2a;
+  --border: #3e6a40; --border-2: #325636;
+  --text-1: #e8f5d8; --text-2: #cce0b0; --text-3: #9ab880; --text-4: #708858; --text-5: #4e5f3c;
+  --accent: #a8c83a; --accent-2: #82a020;
+  --accent-grad: linear-gradient(135deg, #a8c83a 0%, #d8e858 100%);
+  --accent-fg: #0a1208; --accent-soft: rgba(168,200,58,0.22);
+  --tabbar: #08120c; --tabbar-border: #3e6a40;
+  --modal: linear-gradient(180deg, #16281a, #0e1c12);
+  --input: #08120c; --input-border: #3e6a40; --ink: #e8f5d8;
+}
+
+/* 6. Plum — тёмная слива + розовая фуксия */
+html[data-theme="creative"][data-palette="plum"] {
+  --bg: #1f0d1f; --bg-grad: radial-gradient(ellipse at 0% 20%, rgba(220,80,180,0.18), transparent 55%), radial-gradient(ellipse at 100% 100%, rgba(140,80,200,0.16), transparent 55%), #1f0d1f;
+  --surface: #2a1230; --surface-2: #321638; --surface-3: #3d1c45;
+  --border: #6e3878; --border-2: #582a60;
+  --text-1: #fae0f5; --text-2: #e8c0d8; --text-3: #be90b0; --text-4: #8c6884; --text-5: #604858;
+  --accent: #e070a8; --accent-2: #b84088;
+  --accent-grad: linear-gradient(135deg, #e070a8 0%, #b06ee8 100%);
+  --accent-fg: #14041a; --accent-soft: rgba(224,112,168,0.22);
+  --tabbar: #170818; --tabbar-border: #6e3878;
+  --modal: linear-gradient(180deg, #2a1230, #1f0d1f);
+  --input: #170818; --input-border: #6e3878; --ink: #fae0f5;
+}
+
+/* 7. Latte — светлая молочная карамель (контраст: единственная светлая) */
+html[data-theme="creative"][data-palette="latte"] {
+  --bg: #f0e6d2; --bg-grad: radial-gradient(ellipse at 0% 0%, rgba(200,160,100,0.20), transparent 50%), radial-gradient(ellipse at 100% 100%, rgba(160,120,80,0.14), transparent 50%), #f0e6d2;
+  --surface: #faf2e0; --surface-2: #ede0c4; --surface-3: #e0d0a8;
+  --border: #5a3a1c; --border-2: #4a2e14;
+  --text-1: #2a1a08; --text-2: #4a3018; --text-3: #6e4a28; --text-4: #927040; --text-5: #b89a68;
+  --accent: #8b5a2b; --accent-2: #663c14;
+  --accent-grad: linear-gradient(135deg, #8b5a2b 0%, #c8884a 100%);
+  --accent-fg: #faf2e0; --accent-soft: rgba(139,90,43,0.16);
+  --tabbar: #faf2e0; --tabbar-border: #5a3a1c;
+  --modal: linear-gradient(180deg, #faf2e0, #f0e6d2);
+  --input: #ffffff; --input-border: #5a3a1c; --ink: #2a1a08;
+}
+
+/* 8. Cyber — кибер-неон, индиго + ярко-маджента */
+html[data-theme="creative"][data-palette="cyber"] {
+  --bg: #0a0524; --bg-grad: radial-gradient(ellipse at 20% 0%, rgba(255,46,184,0.20), transparent 55%), radial-gradient(ellipse at 80% 100%, rgba(60,200,255,0.18), transparent 55%), #0a0524;
+  --surface: #140a36; --surface-2: #1a0e44; --surface-3: #221456;
+  --border: #5a3aa8; --border-2: #482e88;
+  --text-1: #f0e0ff; --text-2: #d4b8f0; --text-3: #a884c8; --text-4: #7a5a98; --text-5: #4e3868;
+  --accent: #ff2eb8; --accent-2: #d10090;
+  --accent-grad: linear-gradient(135deg, #ff2eb8 0%, #4dd6ff 100%);
+  --accent-fg: #0a0212; --accent-soft: rgba(255,46,184,0.20);
+  --tabbar: #06031c; --tabbar-border: #5a3aa8;
+  --modal: linear-gradient(180deg, #140a36, #0a0524);
+  --input: #06031c; --input-border: #5a3aa8; --ink: #f0e0ff;
+}
+
+/* 9. Sage — пыльный шалфей, приглушённый */
+html[data-theme="creative"][data-palette="sage"] {
+  --bg: #1e2820; --bg-grad: radial-gradient(ellipse at 0% 0%, rgba(150,180,140,0.14), transparent 55%), radial-gradient(ellipse at 100% 100%, rgba(180,160,120,0.10), transparent 55%), #1e2820;
+  --surface: #283328; --surface-2: #2e3a2e; --surface-3: #364438;
+  --border: #5a6e54; --border-2: #4a5c46;
+  --text-1: #e4ecdc; --text-2: #c8d4ba; --text-3: #98a888; --text-4: #6e7c5e; --text-5: #4c5840;
+  --accent: #a8c098; --accent-2: #7e9c6a;
+  --accent-grad: linear-gradient(135deg, #a8c098 0%, #d8d4a0 100%);
+  --accent-fg: #0e1408; --accent-soft: rgba(168,192,152,0.20);
+  --tabbar: #14180f; --tabbar-border: #5a6e54;
+  --modal: linear-gradient(180deg, #283328, #1e2820);
+  --input: #14180f; --input-border: #5a6e54; --ink: #e4ecdc;
+}
+
+/* 10. Brass — чёрный антикварный + латунь/золото */
+html[data-theme="creative"][data-palette="brass"] {
+  --bg: #0a0a08; --bg-grad: radial-gradient(ellipse at 30% 0%, rgba(220,170,40,0.12), transparent 55%), #0a0a08;
+  --surface: #14140e; --surface-2: #1c1a12; --surface-3: #26221a;
+  --border: #6a5818; --border-2: #524410;
+  --text-1: #f5e8b8; --text-2: #d8c486; --text-3: #a89c5e; --text-4: #786c40; --text-5: #4e4628;
+  --accent: #d4a020; --accent-2: #a87810;
+  --accent-grad: linear-gradient(135deg, #d4a020 0%, #f0c84a 100%);
+  --accent-fg: #0a0a08; --accent-soft: rgba(212,160,32,0.20);
+  --tabbar: #050504; --tabbar-border: #6a5818;
+  --modal: linear-gradient(180deg, #14140e, #0a0a08);
+  --input: #050504; --input-border: #6a5818; --ink: #f5e8b8;
+}
+
+/* 11. Tricolor — чёрный фон, серые поверхности, белый акцент */
+html[data-theme="creative"][data-palette="tricolor"] {
+  --bg: #0a0a0a; --bg-grad: #0a0a0a;
+  --surface: #1c1c1c; --surface-2: #262626; --surface-3: #333333;
+  --border: #6a6a6a; --border-2: #525252;
+  --text-1: #ffffff; --text-2: #d8d8d8; --text-3: #a0a0a0; --text-4: #707070; --text-5: #4a4a4a;
+  --accent: #ffffff; --accent-2: #d0d0d0;
+  --accent-grad: linear-gradient(135deg, #ffffff 0%, #888888 100%);
+  --accent-fg: #0a0a0a; --accent-soft: rgba(255,255,255,0.10);
+  --tabbar: #050505; --tabbar-border: #6a6a6a;
+  --modal: linear-gradient(180deg, #1c1c1c, #0a0a0a);
+  --input: #050505; --input-border: #6a6a6a; --ink: #ffffff;
+}
+
+html[data-theme="notion"] {
+  --bg: #ffffff;
+  --bg-grad: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f7f6f3;
+  --surface-3: #efeee9;
+  --border: rgba(55,53,47,0.09);
+  --border-2: rgba(55,53,47,0.16);
+  --text-1: #37352f;
+  --text-2: #6f6e69;
+  --text-3: #8b8a85;
+  --text-4: #a8a7a2;
+  --text-5: #c8c7c2;
+  --accent: #2383e2;
+  --accent-2: #0b6bcb;
+  --accent-grad: linear-gradient(135deg, #2383e2, #0b6bcb);
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(35,131,226,0.10);
+  --tabbar: rgba(255,255,255,0.96);
+  --tabbar-border: rgba(55,53,47,0.09);
+  --modal: #ffffff;
+  --input: #f7f6f3;
+  --input-border: rgba(55,53,47,0.16);
+  --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --r-card: 4px;
+  --r-card-2: 4px;
+  --r-btn: 4px;
+}
+
+html[data-theme="editorial"] {
+  --bg: #f1ead8;
+  --bg-grad: #f1ead8;
+  --surface: #faf4e2;
+  --surface-2: #e9dfc4;
+  --surface-3: #ddd0ad;
+  --border: #1a1a1a;
+  --border-2: #1a1a1a;
+  --text-1: #141414;
+  --text-2: #2a2a2a;
+  --text-3: #5a5a5a;
+  --text-4: #888888;
+  --text-5: #b0b0b0;
+  --accent: #8b1a1a;
+  --accent-2: #5d0d0d;
+  --accent-grad: linear-gradient(90deg, #8b1a1a, #6a1010);
+  --accent-fg: #faf4e2;
+  --accent-soft: rgba(139,26,26,0.08);
+  --tabbar: #faf4e2;
+  --tabbar-border: #1a1a1a;
+  --modal: #faf4e2;
+  --input: #ffffff;
+  --input-border: #1a1a1a;
+  --font: 'Spectral', Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --r-card: 0px;
+  --r-card-2: 0px;
+  --r-btn: 0px;
+}
+
+/* ============== ОБЩИЕ ОВЕРРАЙДЫ ДЛЯ НЕ-ОРИГИНАЛЬНЫХ ТЕМ ============== */
+
+html:not([data-theme="dark"]) html,
+html:not([data-theme="dark"]) body {
+  background: var(--bg) !important;
+  color: var(--text-1) !important;
+  font-family: var(--font) !important;
+}
+html:not([data-theme="dark"]) body { background: var(--bg-grad) !important; background-attachment: fixed !important; }
+
+/* date-input в светлой схеме */
+html:not([data-theme="dark"]) input[type="date"] { color-scheme: light !important; }
+
+/* ===== Поверхности (карточки) — фон ===== */
+html:not([data-theme="dark"]) [style*="background: rgba(255,255,255,0.02)"],
+html:not([data-theme="dark"]) [style*="background: rgba(255,255,255,0.025)"],
+html:not([data-theme="dark"]) [style*="background: rgba(255,255,255,0.03)"],
+html:not([data-theme="dark"]) [style*="background:rgba(255,255,255,0.03)"],
+html:not([data-theme="dark"]) [style*="background: rgba(255,255,255,0.04)"],
+html:not([data-theme="dark"]) [style*="background: rgba(255,255,255,0.05)"],
+html:not([data-theme="dark"]) [style*="background:rgba(255,255,255,0.05)"] {
+  background: var(--surface) !important;
+}
+html:not([data-theme="dark"]) [style*="background: rgba(255,255,255,0.06)"],
+html:not([data-theme="dark"]) [style*="background:rgba(255,255,255,0.06)"],
+html:not([data-theme="dark"]) [style*="background: rgba(255,255,255,0.08)"],
+html:not([data-theme="dark"]) [style*="background: rgba(255,255,255,0.10)"] {
+  background: var(--surface-2) !important;
+}
+
+/* ===== Инпуты (тёмные в оригинале → светлые) ===== */
+html:not([data-theme="dark"]) [style*="background: rgba(0,0,0,0.2)"],
+html:not([data-theme="dark"]) [style*="background:rgba(0,0,0,0.2)"],
+html:not([data-theme="dark"]) [style*="background: rgba(0,0,0,0.25)"],
+html:not([data-theme="dark"]) [style*="background:rgba(0,0,0,0.25)"],
+html:not([data-theme="dark"]) [style*="background: rgba(0,0,0,0.3)"],
+html:not([data-theme="dark"]) [style*="background:rgba(0,0,0,0.3)"],
+html:not([data-theme="dark"]) [style*="background: rgba(0,0,0,0.4)"],
+html:not([data-theme="dark"]) [style*="background:rgba(0,0,0,0.4)"],
+html:not([data-theme="dark"]) [style*="background: rgba(0,0,0,0.5)"],
+html:not([data-theme="dark"]) [style*="background:rgba(0,0,0,0.5)"] {
+  background: var(--input) !important;
+}
+
+/* ===== Таб-бар внизу ===== */
+html:not([data-theme="dark"]) [style*="background: rgba(10,6,18,0.95)"] {
+  background: var(--tabbar) !important;
+  border-top-color: var(--tabbar-border) !important;
+}
+
+/* ===== Модал ===== */
+html:not([data-theme="dark"]) [style*="linear-gradient(180deg, #150a25, #0a0612)"],
+html:not([data-theme="dark"]) [style*="linear-gradient(180deg,#150a25,#0a0612)"] {
+  background: var(--modal) !important;
+}
+
+/* Модал-оверлей затемнение */
+html:not([data-theme="dark"]) [style*="background: rgba(0,0,0,0.7)"] {
+  background: rgba(20,20,20,0.42) !important;
+}
+
+/* ===== Главный CTA-градиент A78BFA → FF4DD8 ===== */
+html:not([data-theme="dark"]) [style*="linear-gradient(135deg,#A78BFA,#FF4DD8)"],
+html:not([data-theme="dark"]) [style*="linear-gradient(135deg, #A78BFA,#FF4DD8)"],
+html:not([data-theme="dark"]) [style*="linear-gradient(135deg, #A78BFA, #FF4DD8)"],
+html:not([data-theme="dark"]) [style*="linear-gradient(90deg, #A78BFA, #FF4DD8)"],
+html:not([data-theme="dark"]) [style*="linear-gradient(90deg,#A78BFA,#FF4DD8)"] {
+  background: var(--accent-grad) !important;
+  color: var(--accent-fg) !important;
+}
+
+/* Текст с -webkit-background-clip:text и фиолетовым градиентом — становится цветом акцента */
+html:not([data-theme="dark"]) [style*="-webkit-background-clip: text"][style*="A78BFA"],
+html:not([data-theme="dark"]) [style*="-webkit-background-clip:text"][style*="A78BFA"] {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  -webkit-text-fill-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+/* Карточка текущего этапа (Path) — purple-pink gradient → акцент-фон */
+html:not([data-theme="dark"]) [style*="rgba(167,139,250,0.18)"][style*="rgba(255,77,216,0.08)"] {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent) !important;
+}
+html:not([data-theme="dark"]) [style*="linear-gradient(90deg,#A78BFA,#FF4DD8)"] {
+  background: var(--accent-grad) !important;
+}
+html:not([data-theme="dark"]) [style*="linear-gradient(90deg,#10E891,#A78BFA)"] {
+  background: linear-gradient(90deg, #16a34a, var(--accent)) !important;
+}
+
+/* Бэкап-баннер (cyan/purple) — нейтральная инфо-карточка */
+html:not([data-theme="dark"]) [style*="rgba(0,229,255,0.15)"][style*="rgba(167,139,250,0.1)"] {
+  background: var(--accent-soft) !important;
+  border-bottom-color: var(--accent) !important;
+}
+html:not([data-theme="dark"]) [style*="rgba(0,229,255,0.3)"] {
+  border-color: var(--accent) !important;
+}
+
+/* ===== Границы (нейтральные белые с альфой) ===== */
+html:not([data-theme="dark"]) [style*="border: 1px solid rgba(255,255,255"],
+html:not([data-theme="dark"]) [style*="border:1px solid rgba(255,255,255"] {
+  border-color: var(--border) !important;
+}
+html:not([data-theme="dark"]) [style*="border: 1px dashed rgba(255,255,255"] {
+  border-color: var(--border-2) !important;
+}
+html:not([data-theme="dark"]) [style*="border-top: 1px solid rgba(255,255,255"] {
+  border-top-color: var(--border) !important;
+}
+html:not([data-theme="dark"]) [style*="border-bottom: 1px solid rgba(255,255,255"] {
+  border-bottom-color: var(--border) !important;
+}
+html:not([data-theme="dark"]) [style*="border-left: 1px solid rgba(255,255,255"] {
+  border-left-color: var(--border) !important;
+}
+
+/* Линии-разделители (height:1px;background:rgba(255,255,255,0.08)) */
+html:not([data-theme="dark"]) [style*="height:1px;background:rgba(255,255,255,0.08)"],
+html:not([data-theme="dark"]) [style*="height: 1px; background: rgba(255,255,255,0.08)"] {
+  background: var(--border) !important;
+}
+
+/* ===== Текст: основные цвета ===== */
+html:not([data-theme="dark"]) [style*="color: #fff;"],
+html:not([data-theme="dark"]) [style*="color:#fff;"],
+html:not([data-theme="dark"]) [style*="color: #fff\""],
+html:not([data-theme="dark"]) [style*="color: #fff "],
+html:not([data-theme="dark"]) [style*="color:#fff "],
+html:not([data-theme="dark"]) [style*="color: #fff}"],
+html:not([data-theme="dark"]) [style*="color: #ffffff"],
+html:not([data-theme="dark"]) [style*="color: #e8e0ff"] {
+  color: var(--text-1) !important;
+}
+html:not([data-theme="dark"]) [style*="color: #b0a0d0"],
+html:not([data-theme="dark"]) [style*="color:#b0a0d0"] {
+  color: var(--text-2) !important;
+}
+html:not([data-theme="dark"]) [style*="color: #8870a8"],
+html:not([data-theme="dark"]) [style*="color:#8870a8"] {
+  color: var(--text-3) !important;
+}
+html:not([data-theme="dark"]) [style*="color: #6a5a8a"],
+html:not([data-theme="dark"]) [style*="color:#6a5a8a"] {
+  color: var(--text-4) !important;
+}
+html:not([data-theme="dark"]) [style*="color: #5a4a78"],
+html:not([data-theme="dark"]) [style*="color:#5a4a78"] {
+  color: var(--text-4) !important;
+}
+html:not([data-theme="dark"]) [style*="color: #3a2a58"],
+html:not([data-theme="dark"]) [style*="color:#3a2a58"] {
+  color: var(--text-5) !important;
+}
+
+/* ===== Акцентные цвета (purple/pink) → акцент темы ===== */
+html:not([data-theme="dark"]) [style*="color: #A78BFA"],
+html:not([data-theme="dark"]) [style*="color:#A78BFA"],
+html:not([data-theme="dark"]) [style*="color: #FF4DD8"],
+html:not([data-theme="dark"]) [style*="color:#FF4DD8"] {
+  color: var(--accent) !important;
+}
+
+/* ===== Свечения и неон-тени убираем ===== */
+html:not([data-theme="dark"]) [style*="text-shadow: 0 0"],
+html:not([data-theme="dark"]) [style*="text-shadow:0 0"] {
+  text-shadow: none !important;
+}
+html:not([data-theme="dark"]) [style*="box-shadow: 0 0 16px"],
+html:not([data-theme="dark"]) [style*="box-shadow: 0 0 12px"],
+html:not([data-theme="dark"]) [style*="box-shadow: 0 0 10px"],
+html:not([data-theme="dark"]) [style*="box-shadow: 0 0 14px"],
+html:not([data-theme="dark"]) [style*="box-shadow: 0 -10px 40px"],
+html:not([data-theme="dark"]) [style*="box-shadow:0 0 10px"],
+html:not([data-theme="dark"]) [style*="box-shadow: 0 4px 20px"] {
+  box-shadow: none !important;
+}
+
+/* ===== Активный таб ===== */
+html:not([data-theme="dark"]) [style*="color: #A78BFA"][style*="border: none"] {
+  color: var(--accent) !important;
+}
+
+/* ===== Скроллбар ===== */
+html:not([data-theme="dark"]) ::-webkit-scrollbar-track { background: transparent !important; }
+html:not([data-theme="dark"]) ::-webkit-scrollbar-thumb { background: var(--text-4) !important; opacity: 0.5; }
+
+/* ===== Фокус-ринг для инпутов ===== */
+html:not([data-theme="dark"]) textarea:focus,
+html:not([data-theme="dark"]) input:focus,
+html:not([data-theme="dark"]) select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft) !important;
+}
+
+/* Плейсхолдер */
+html:not([data-theme="dark"]) ::placeholder { color: var(--text-4) !important; opacity: 1; }
+
+/* ===== СФЕРНЫЕ КАРТОЧКИ (Древо) — мягкая тонировка вместо неоновой ===== */
+/* Для Pro / Notion слабо тонируем сферой; Creative и Editorial оставляем сильнее */
+html[data-theme="pro"]    [style*="linear-gradient(160deg,"],
+html[data-theme="notion"] [style*="linear-gradient(160deg,"] {
+  background: var(--surface) !important;
+}
+html[data-theme="pro"]    [style*="linear-gradient(160deg,"] { box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 0 0 1px var(--border) !important; border-color: transparent !important; }
+
+/* ============== PRO ============== */
+html[data-theme="pro"] [style*="border-radius: 16px"] { border-radius: var(--r-card) !important; }
+html[data-theme="pro"] [style*="border-radius:16px"]   { border-radius: var(--r-card) !important; }
+html[data-theme="pro"] [style*="border-radius: 14px"] { border-radius: var(--r-card-2) !important; }
+html[data-theme="pro"] [style*="border-radius:14px"]  { border-radius: var(--r-card-2) !important; }
+html[data-theme="pro"] [style*="border-radius: 12px"] { border-radius: var(--r-card-2) !important; }
+html[data-theme="pro"] [style*="border-radius:12px"]  { border-radius: var(--r-card-2) !important; }
+html[data-theme="pro"] [style*="border-radius: 10px"] { border-radius: var(--r-btn) !important; }
+html[data-theme="pro"] [style*="border-radius:10px"]  { border-radius: var(--r-btn) !important; }
+html[data-theme="pro"] [style*="border-radius: 20px 20px 0 0"] { border-radius: 16px 16px 0 0 !important; }
+
+/* Pro: убираем декоративные блобы в углах сферных карточек */
+html[data-theme="pro"] [style*="radial-gradient(circle,"][style*="35, transparent 70%"] {
+  display: none !important;
+}
+
+/* Pro: тёплая иконка — спокойнее */
+html[data-theme="pro"] [style*="border-top: 3px solid"] { border-top-width: 1px !important; }
+
+/* ============== CREATIVE ============== */
+html[data-theme="creative"] body { letter-spacing: -0.005em; }
+
+html[data-theme="creative"] [style*="border-radius: 16px"],
+html[data-theme="creative"] [style*="border-radius:16px"]  { border-radius: 24px !important; }
+html[data-theme="creative"] [style*="border-radius: 14px"],
+html[data-theme="creative"] [style*="border-radius:14px"]  { border-radius: 20px !important; }
+html[data-theme="creative"] [style*="border-radius: 12px"],
+html[data-theme="creative"] [style*="border-radius:12px"]  { border-radius: 18px !important; }
+html[data-theme="creative"] [style*="border-radius: 10px"],
+html[data-theme="creative"] [style*="border-radius:10px"]  { border-radius: 14px !important; }
+html[data-theme="creative"] [style*="border-radius: 8px"]  { border-radius: 12px !important; }
+
+/* Creative: толстая контурная рамка + сдвинутая тень у карточек */
+html[data-theme="creative"] [style*="linear-gradient(160deg,"] {
+  border: 2px solid var(--ink) !important;
+  box-shadow: 4px 4px 0 var(--ink) !important;
+}
+html[data-theme="creative"] [style*="border: 1px solid rgba(255,255,255"] {
+  border-width: 2px !important;
+  border-color: var(--ink) !important;
+}
+html[data-theme="creative"] [style*="border: 1px solid rgba(167,139,250"] {
+  border-color: var(--ink) !important;
+  border-width: 2px !important;
+}
+
+/* Creative: кнопки CTA — обводка-стикер */
+html[data-theme="creative"] button[style*="linear-gradient(135deg,#A78BFA,#FF4DD8)"],
+html[data-theme="creative"] button[style*="linear-gradient(135deg, #A78BFA, #FF4DD8)"] {
+  border: 2px solid var(--ink) !important;
+  box-shadow: 3px 3px 0 var(--ink) !important;
+  color: var(--accent-fg) !important;
+}
+
+/* Creative: легкое наклонение для сферных карточек на Древе */
+html[data-theme="creative"] #app-root > div > div[style*="grid-template-columns: repeat(2, 1fr)"] > button:nth-child(odd)  { transform: rotate(-0.5deg); }
+html[data-theme="creative"] #app-root > div > div[style*="grid-template-columns: repeat(2, 1fr)"] > button:nth-child(even) { transform: rotate(0.5deg); }
+html[data-theme="creative"] #app-root > div > div[style*="grid-template-columns: repeat(2, 1fr)"] > button:hover {
+  transform: rotate(0deg) translateY(-2px) !important;
+}
+
+/* ============== NOTION ============== */
+html[data-theme="notion"] body { font-feature-settings: "ss01" on; }
+
+html[data-theme="notion"] [style*="border-radius: 16px"],
+html[data-theme="notion"] [style*="border-radius:16px"]  { border-radius: 6px !important; }
+html[data-theme="notion"] [style*="border-radius: 14px"],
+html[data-theme="notion"] [style*="border-radius:14px"]  { border-radius: 4px !important; }
+html[data-theme="notion"] [style*="border-radius: 12px"],
+html[data-theme="notion"] [style*="border-radius:12px"]  { border-radius: 4px !important; }
+html[data-theme="notion"] [style*="border-radius: 10px"],
+html[data-theme="notion"] [style*="border-radius:10px"]  { border-radius: 4px !important; }
+html[data-theme="notion"] [style*="border-radius: 8px"]  { border-radius: 3px !important; }
+html[data-theme="notion"] [style*="border-radius: 6px"]  { border-radius: 3px !important; }
+html[data-theme="notion"] [style*="border-radius: 20px 20px 0 0"] { border-radius: 8px 8px 0 0 !important; }
+
+/* Notion: сферные карточки — без рамки и тени, плоский серый callout */
+html[data-theme="notion"] [style*="linear-gradient(160deg,"] {
+  background: var(--surface-2) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+html[data-theme="notion"] [style*="linear-gradient(135deg,"][style*="12,"][style*="04)"] {
+  background: var(--surface-2) !important;
+  border-color: var(--border) !important;
+}
+
+/* Notion: спрятать декоративные блобы */
+html[data-theme="notion"] [style*="radial-gradient(circle,"][style*="35, transparent 70%"] {
+  display: none !important;
+}
+
+/* Notion: иконки сферы остаются цветными, но без свечения */
+
+/* ============== EDITORIAL ============== */
+html[data-theme="editorial"] body { letter-spacing: 0.005em; }
+
+/* Все радиусы → 0 */
+html[data-theme="editorial"] [style*="border-radius:"] { border-radius: 0 !important; }
+
+/* Все границы — чёрный 1px */
+html[data-theme="editorial"] [style*="border: 1px solid"] { border-color: #1a1a1a !important; }
+html[data-theme="editorial"] [style*="border-top: 1px solid"] { border-top-color: #1a1a1a !important; }
+html[data-theme="editorial"] [style*="border-bottom: 1px solid"] { border-bottom-color: #1a1a1a !important; }
+html[data-theme="editorial"] [style*="border: 1px dashed"] { border-color: #1a1a1a !important; }
+
+/* Editorial: цифры моноширинные */
+html[data-theme="editorial"] [style*="font-weight: 700"][style*="font-size: 22"],
+html[data-theme="editorial"] [style*="font-weight:700"][style*="font-size:22"],
+html[data-theme="editorial"] [style*="font-weight: 800"],
+html[data-theme="editorial"] [style*="font-weight:800"] {
+  font-family: var(--font-mono) !important;
+  letter-spacing: -0.04em !important;
+}
+
+/* Editorial: верхние всекапсные мелкие лейблы — моно */
+html[data-theme="editorial"] [style*="letter-spacing: 0.25em"],
+html[data-theme="editorial"] [style*="letter-spacing: 0.3em"],
+html[data-theme="editorial"] [style*="letter-spacing:0.3em"],
+html[data-theme="editorial"] [style*="letter-spacing: 0.2em"] {
+  font-family: var(--font-mono) !important;
+  font-weight: 500 !important;
+}
+
+/* Editorial: убираем мягкие тени и блобы */
+html[data-theme="editorial"] [style*="radial-gradient(circle,"][style*="35, transparent 70%"] {
+  display: none !important;
+}
+
+/* Editorial: оверлей модала — кремовый */
+html[data-theme="editorial"] [style*="background: rgba(0,0,0,0.7)"] {
+  background: rgba(20,20,20,0.55) !important;
+}
+
+/* ============== ПЕРЕКЛЮЧАТЕЛЬ ТЕМ ============== */
+#kp-theme-toggle {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: 12px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+#kp-theme-toggle .kp-th-btn {
+  background: rgba(20,20,30,0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 7px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+#kp-theme-toggle .kp-th-btn:hover { transform: translateY(-1px); }
+#kp-theme-toggle .kp-th-btn .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: linear-gradient(135deg, #A78BFA, #FF4DD8);
+}
+#kp-theme-menu {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(20,20,30,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 180px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+}
+#kp-theme-menu.open { display: flex; animation: kp-th-pop 0.15s ease; }
+@keyframes kp-th-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+#kp-theme-menu button {
+  background: none;
+  border: none;
+  color: #e8e0ff;
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  font-weight: 500;
+}
+#kp-theme-menu button:hover { background: rgba(255,255,255,0.07); }
+#kp-theme-menu button.active { background: rgba(167,139,250,0.18); color: #fff; }
+#kp-theme-menu button .sw {
+  width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+#kp-theme-menu button .meta {
+  display: flex; flex-direction: column; gap: 1px;
+}
+#kp-theme-menu button .meta b { font-weight: 600; font-size: 12px; }
+#kp-theme-menu button .meta span { font-size: 10px; color: #b0a0d0; letter-spacing: 0.04em; }
+
+/* Кнопка тёмного оверлея для светлых тем */
+html:not([data-theme="dark"]) #kp-theme-toggle .kp-th-btn {
+  background: var(--surface) !important;
+  color: var(--text-1) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 14px rgba(15,23,42,0.08) !important;
+}
+html:not([data-theme="dark"]) #kp-theme-menu {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 10px 40px rgba(15,23,42,0.12) !important;
+}
+html:not([data-theme="dark"]) #kp-theme-menu button { color: var(--text-1) !important; }
+html:not([data-theme="dark"]) #kp-theme-menu button:hover { background: var(--surface-2) !important; }
+html:not([data-theme="dark"]) #kp-theme-menu button.active { background: var(--accent-soft) !important; color: var(--accent) !important; }
+html[data-theme="creative"] #kp-theme-toggle .kp-th-btn { border-width: 2px !important; border-color: var(--ink) !important; box-shadow: 3px 3px 0 var(--ink) !important; border-radius: 999px !important; }
+html[data-theme="creative"] #kp-theme-menu { border-width: 2px !important; border-color: var(--ink) !important; box-shadow: 4px 4px 0 var(--ink) !important; border-radius: 18px !important; }
+
+/* Палитра-полоска внутри меню — видна только в творческой теме */
+#kp-palette-row { display: none; padding: 10px 6px 4px; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--border, rgba(255,255,255,0.12)); margin-top: 4px; align-items: center; justify-content: center; }
+html[data-theme="creative"] #kp-palette-row { display: flex; }
+#kp-palette-row .kp-pal {
+  width: 36px; height: 36px;
+  padding: 0;
+  border: 2px solid var(--ink, #1a0f00);
+  border-radius: 50%;
+  cursor: pointer;
+  background: #fff;
+  box-shadow: 2px 2px 0 var(--ink, #1a0f00);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+#kp-palette-row .kp-pal:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink, #1a0f00); }
+#kp-palette-row .kp-pal.active { transform: translate(0,0); box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--ink, #1a0f00); }
+#kp-palette-row .kp-pal[data-pal="vermillion"] { background: linear-gradient(135deg,#2a1810 0%,#2a1810 50%,#d97742 50%,#d97742 100%); }
+#kp-palette-row .kp-pal[data-pal="sunset"]     { background: linear-gradient(135deg,#3a1230 0%,#3a1230 50%,#ff8a5b 50%,#ff8a5b 100%); }
+#kp-palette-row .kp-pal[data-pal="aurora"]     { background: linear-gradient(135deg,#0a1830 0%,#0a1830 50%,#3ad6c8 50%,#3ad6c8 100%); }
+#kp-palette-row .kp-pal[data-pal="lava"]       { background: linear-gradient(135deg,#0e0a08 0%,#0e0a08 50%,#ff5530 50%,#ff5530 100%); }
+#kp-palette-row .kp-pal[data-pal="forest"]     { background: linear-gradient(135deg,#0e1c12 0%,#0e1c12 50%,#a8c83a 50%,#a8c83a 100%); }
+#kp-palette-row .kp-pal[data-pal="plum"]       { background: linear-gradient(135deg,#1f0d1f 0%,#1f0d1f 50%,#e070a8 50%,#e070a8 100%); }
+#kp-palette-row .kp-pal[data-pal="latte"]      { background: linear-gradient(135deg,#e8dcc4 0%,#e8dcc4 50%,#8b5a2b 50%,#8b5a2b 100%); }
+#kp-palette-row .kp-pal[data-pal="cyber"]      { background: linear-gradient(135deg,#0a0524 0%,#0a0524 50%,#ff2eb8 50%,#ff2eb8 100%); }
+#kp-palette-row .kp-pal[data-pal="sage"]       { background: linear-gradient(135deg,#1e2820 0%,#1e2820 50%,#a8c098 50%,#a8c098 100%); }
+#kp-palette-row .kp-pal[data-pal="brass"]      { background: linear-gradient(135deg,#0a0a08 0%,#0a0a08 50%,#d4a020 50%,#d4a020 100%); }
+#kp-palette-row .kp-pal[data-pal="tricolor"]   { background: linear-gradient(135deg, #0a0a0a 0%, #0a0a0a 33%, #888888 33%, #888888 66%, #ffffff 66%, #ffffff 100%); }
+html[data-theme="editorial"] #kp-theme-toggle .kp-th-btn { border-radius: 0 !important; font-family: 'JetBrains Mono', monospace !important; }
+html[data-theme="editorial"] #kp-theme-menu { border-radius: 0 !important; box-shadow: 4px 4px 0 rgba(0,0,0,0.15) !important; }
+
 </style>
 </head>
 <body>
@@ -51,12 +1030,12 @@
 const STORAGE_KEY = 'life_tree_local_v2';
 
 const SPHERES = [
-  { id: 'body', name: 'Тело', emoji: '⚡', color: '#FF3D71', glow: 'rgba(255,61,113,0.5)', desc: 'Сила · здоровье' },
-  { id: 'career', name: 'Карьера', emoji: '◆', color: '#FFAA00', glow: 'rgba(255,170,0,0.5)', desc: 'Работа · доход' },
-  { id: 'skills', name: 'Навыки', emoji: '✦', color: '#00E5FF', glow: 'rgba(0,229,255,0.5)', desc: 'Учёба · умения' },
-  { id: 'religion', name: 'Религия', emoji: '☾', color: '#A78BFA', glow: 'rgba(167,139,250,0.5)', desc: 'Вера · путь' },
-  { id: 'money', name: 'Финансы', emoji: '◈', color: '#10E891', glow: 'rgba(16,232,145,0.5)', desc: 'Капитал · рост' },
-  { id: 'love', name: 'Связи', emoji: '♥', color: '#FF4DD8', glow: 'rgba(255,77,216,0.5)', desc: 'Семья · друзья' }
+  { id: 'body', name: 'Тело', emoji: '⚡', color: '#FF3D71', glow: 'rgba(255,61,113,0.6)', desc: 'Сила · здоровье' },
+  { id: 'career', name: 'Карьера', emoji: '◆', color: '#FFAA00', glow: 'rgba(255,170,0,0.6)', desc: 'Работа · доход' },
+  { id: 'skills', name: 'Навыки', emoji: '✦', color: '#00E5FF', glow: 'rgba(0,229,255,0.6)', desc: 'Учёба · умения' },
+  { id: 'religion', name: 'Религия', emoji: '☾', color: '#A78BFA', glow: 'rgba(167,139,250,0.6)', desc: 'Вера · путь' },
+  { id: 'money', name: 'Финансы', emoji: '◈', color: '#10E891', glow: 'rgba(16,232,145,0.6)', desc: 'Капитал · рост' },
+  { id: 'love', name: 'Связи', emoji: '♥', color: '#FF4DD8', glow: 'rgba(255,77,216,0.6)', desc: 'Семья · друзья' }
 ];
 
 const QUESTIONS = {
@@ -154,23 +1133,49 @@ function stageOverallProgress(stageId) {
 }
 
 // === УРОВНИ ===
-// 150 уровней. Шаг 1500 XP. Уровень 1 = Странник, Уровень 150 = Вершина.
-// При ритме ~875 XP/неделю это даёт примерно 1 уровень за 2 недели.
+// 150 уровней. Шаг 1500 XP. ~1 уровень за 2 недели.
+// Тиры по 10 уровней — название меняется каждые 10 уровней с римской цифрой
 const XP_PER_LEVEL = 1500;
 const MAX_LEVEL = 150;
+// 15 тиров по 10 уровней — серьёзные мужские названия, без детского пафоса
+const LEVEL_TIERS = [
+  'Странник',     // 1-10
+  'Искатель',     // 11-20
+  'Практик',      // 21-30
+  'Дисциплина',   // 31-40
+  'Стратег',      // 41-50
+  'Архитектор',   // 51-60
+  'Командир',     // 61-70
+  'Контроль',     // 71-80
+  'Структура',    // 81-90
+  'Система',      // 91-100
+  'Мастер',       // 101-110
+  'Путь',         // 111-120
+  'Принцип',      // 121-130
+  'Легенда',      // 131-140
+  'Вершина'       // 141-150
+];
+function toRoman(n) {
+  const map = [['X',10],['IX',9],['V',5],['IV',4],['I',1]];
+  let r = '';
+  for (const [s, v] of map) { while (n >= v) { r += s; n -= v; } }
+  return r;
+}
 
 function levelInfo(xp) {
   const level = Math.min(MAX_LEVEL, Math.floor(xp / XP_PER_LEVEL) + 1);
+  const tierIdx = Math.min(LEVEL_TIERS.length - 1, Math.floor((level - 1) / 10));
+  const tierName = LEVEL_TIERS[tierIdx];
+  const inTier = ((level - 1) % 10) + 1;
   let name;
-  if (level === 1) name = 'Странник';
-  else if (level >= MAX_LEVEL) name = 'Вершина';
-  else name = `Уровень ${level}`;
+  if (level >= MAX_LEVEL) name = 'Вершина';
+  else if (inTier === 1) name = tierName; // первый уровень тира — без цифры
+  else name = `${tierName} ${toRoman(inTier)}`; // Странник II, Странник III, ...
   const currentLevelXP = (level - 1) * XP_PER_LEVEL;
   const nextLevelXP = level >= MAX_LEVEL ? null : level * XP_PER_LEVEL;
-  return { level, name, currentLevelXP, nextLevelXP };
+  return { level, name, tierName, inTier, currentLevelXP, nextLevelXP };
 }
 
-// Совместимость со старым API: rank() возвращает {xp, name} для текущего уровня
 const rank = xp => {
   const li = levelInfo(xp);
   return { xp: li.currentLevelXP, name: li.name, level: li.level };
@@ -183,32 +1188,41 @@ const nextRank = xp => {
 };
 
 const ACHIEVEMENTS = [
-  { id: 'root', tier: 0, parent: null, name: 'Начало', desc: 'Завершить онбординг', icon: '✦', cond: s => s.onboardingDone, branch: 'core' },
-  { id: 'first_task', tier: 1, parent: 'root', name: 'Первый шаг', desc: 'Выполнить первую задачу', icon: '➤', cond: s => s.history.length >= 1, branch: 'core' },
-  { id: 'streak_3', tier: 2, parent: 'first_task', name: 'Триада', desc: '3 дня подряд', icon: '◈', cond: s => s.maxStreak >= 3, branch: 'core' },
-  { id: 'streak_7', tier: 3, parent: 'streak_3', name: 'Неделя огня', desc: '7 дней подряд', icon: '🔥', cond: s => s.maxStreak >= 7, branch: 'core' },
-  { id: 'streak_30', tier: 4, parent: 'streak_7', name: 'Месяц дисциплины', desc: '30 дней подряд', icon: '★', cond: s => s.maxStreak >= 30, branch: 'core' },
-  { id: 'tasks_50', tier: 3, parent: 'first_task', name: 'Пятьдесят шагов', desc: '50 выполненных задач', icon: '◆', cond: s => s.history.length >= 50, branch: 'core' },
-  { id: 'tasks_200', tier: 4, parent: 'tasks_50', name: 'Дисциплина', desc: '200 выполненных задач', icon: '✪', cond: s => s.history.length >= 200, branch: 'core' },
-  { id: 'hours_50', tier: 2, parent: 'first_task', name: '50 часов', desc: '50 часов суммарной работы', icon: '◷', cond: s => s.totalHours >= 50, branch: 'core' },
-  { id: 'hours_200', tier: 3, parent: 'hours_50', name: '200 часов', desc: '200 часов суммарной работы', icon: '◴', cond: s => s.totalHours >= 200, branch: 'core' },
-  { id: 'hours_500', tier: 4, parent: 'hours_200', name: 'Глубина мастерства', desc: '500 часов', icon: '⊛', cond: s => s.totalHours >= 500, branch: 'core' },
-  { id: 'stage_s1', tier: 2, parent: 'first_task', name: 'Фундамент', desc: 'Открыть «Фундамент привычки»', icon: '◉', cond: s => !!s.stagesUnlocked['s1'], branch: 'core' },
-  { id: 'stage_s3', tier: 3, parent: 'stage_s1', name: 'Год пройден', desc: 'Открыть «Год пути»', icon: '☼', cond: s => !!s.stagesUnlocked['s3'], branch: 'core' },
-  { id: 'stage_s6', tier: 4, parent: 'stage_s3', name: 'Вершина', desc: 'Открыть финальный этап', icon: '✧', cond: s => !!s.stagesUnlocked['s6'], branch: 'core' },
-  ...SPHERES.flatMap(sp => [
-    { id: `${sp.id}_100`, tier: 1, parent: 'first_task', name: `${sp.name}: росток`, desc: `100 XP в «${sp.name}»`, icon: sp.emoji, cond: s => (s.sphereXP[sp.id] || 0) >= 100, branch: sp.id, color: sp.color },
-    { id: `${sp.id}_500`, tier: 2, parent: `${sp.id}_100`, name: `${sp.name}: рост`, desc: `500 XP в «${sp.name}»`, icon: sp.emoji, cond: s => (s.sphereXP[sp.id] || 0) >= 500, branch: sp.id, color: sp.color },
-    { id: `${sp.id}_2000`, tier: 3, parent: `${sp.id}_500`, name: `${sp.name}: мастерство`, desc: `2000 XP в «${sp.name}»`, icon: sp.emoji, cond: s => (s.sphereXP[sp.id] || 0) >= 2000, branch: sp.id, color: sp.color },
-  ])
+  // Линейная последовательность — каждый следующий шаг СЛОЖНЕЕ предыдущего
+  { id: 'root',        name: 'Запуск',          desc: 'Завершить онбординг',                 icon: '✦',  cond: s => s.onboardingDone },
+  { id: 'first_task',  name: 'Первый шаг',      desc: 'Выполнить первую задачу',             icon: '➤',  cond: s => s.history.length >= 1 },
+  { id: 'streak_3',    name: 'Триада',          desc: '3 дня активности подряд',             icon: '◈',  cond: s => s.maxStreak >= 3 },
+  { id: 'first_week',  name: 'Первая неделя',   desc: '7 дней с момента старта',             icon: '◇',  cond: s => { const d = Math.floor((new Date() - new Date(s.startedAt)) / 86400000); return d >= 7; } },
+  { id: 'tasks_10',    name: 'Десятка',         desc: '10 выполненных задач',                icon: '◆',  cond: s => s.history.length >= 10 },
+  { id: 'hours_10',    name: 'Десять часов',    desc: '10 часов суммарной работы',           icon: '◷',  cond: s => (s.totalHours||0) >= 10 },
+  { id: 'streak_7',    name: 'Семь дней',       desc: '7 дней активности подряд',            icon: '🔥', cond: s => s.maxStreak >= 7 },
+  { id: 'stage_s1',    name: 'Фундамент',       desc: 'Открыть 1-й этап пути',               icon: '◉',  cond: s => !!s.stagesUnlocked['s1'] },
+  { id: 'tasks_50',    name: 'Пятьдесят',       desc: '50 выполненных задач',                icon: '▲',  cond: s => s.history.length >= 50 },
+  { id: 'hours_50',    name: 'Полсотни часов',  desc: '50 часов суммарной работы',           icon: '◴',  cond: s => (s.totalHours||0) >= 50 },
+  { id: 'stage_s2',    name: 'Ритм',            desc: 'Открыть 2-й этап пути',               icon: '◑',  cond: s => !!s.stagesUnlocked['s2'] },
+  { id: 'streak_30',   name: 'Месяц огня',      desc: '30 дней активности подряд',           icon: '★',  cond: s => s.maxStreak >= 30 },
+  { id: 'tasks_200',   name: 'Двести шагов',    desc: '200 выполненных задач',               icon: '✪',  cond: s => s.history.length >= 200 },
+  { id: 'hours_200',   name: 'Двести часов',    desc: '200 часов суммарной работы',          icon: '⊙',  cond: s => (s.totalHours||0) >= 200 },
+  { id: 'stage_s3',    name: 'Система',         desc: 'Открыть 3-й этап пути',               icon: '☼',  cond: s => !!s.stagesUnlocked['s3'] },
+  { id: 'streak_100',  name: 'Сто дней',        desc: '100 дней активности подряд',          icon: '⚡', cond: s => s.maxStreak >= 100 },
+  { id: 'tasks_500',   name: 'Пятьсот',         desc: '500 выполненных задач',               icon: '✦',  cond: s => s.history.length >= 500 },
+  { id: 'hours_500',   name: 'Пятьсот часов',   desc: '500 часов суммарной работы',          icon: '⊛',  cond: s => (s.totalHours||0) >= 500 },
+  { id: 'stage_s6',    name: 'Вершина пути',    desc: 'Открыть финальный этап',              icon: '✧',  cond: s => !!s.stagesUnlocked['s6'] },
 ];
 
 const MONTHS_RU = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 const MONTHS_RU_SHORT = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
 const WEEKDAYS_SHORT = ['пн','вт','ср','чт','пт','сб','вс'];
 
-const today = () => new Date().toISOString().slice(0, 10);
-const currentMonth = () => new Date().toISOString().slice(0, 7);
+const today = () => {
+  // Локальная дата (а не UTC) — критично для Чили (UTC-4) и других часовых поясов
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+};
+const currentMonth = () => {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+};
 const daysBetween = (d1, d2) => Math.floor((new Date(d2) - new Date(d1)) / 86400000);
 const xpFor = d => ({ easy: 10, medium: 25, hard: 50 }[d] || 10);
 const xpForHours = h => Math.round(h * 25);
@@ -388,7 +1402,7 @@ function finEntriesForMonth(monthStr) {
 function finMonthSum(monthStr, type) {
   return finEntriesForMonth(monthStr)
     .filter(e => e.type === type)
-    .reduce((s, e) => s + e.amount, 0);
+    .reduce((s, e) => s + (e.amountUSD || e.amount || 0), 0);
 }
 
 function finMonthNet(monthStr) {
@@ -403,13 +1417,84 @@ function finTotalSavings() {
   return cushion + sum;
 }
 
+// Кэш курсов валют: {USD: 1, RUB: 91.5, CLP: 940, EUR: 0.92, timestamp}
+window.__fxRates = window.__fxRates || null;
+window.__fxFetching = false;
+
+// Загружаем курсы ВСЕГДА относительно USD — это позволяет конвертировать между любыми парами
+async function fetchFXRates() {
+  if (window.__fxFetching) return;
+  // Кэш на 1 час
+  if (window.__fxRates && Date.now() - window.__fxRates.timestamp < 3600000) {
+    updateFXDisplay();
+    return;
+  }
+  window.__fxFetching = true;
+  try {
+    const res = await fetch('https://api.frankfurter.app/latest?from=USD');
+    if (!res.ok) throw new Error('FX API error');
+    const data = await res.json();
+    // rates = { EUR: 0.92, RUB: 91.5, CLP: 940, GBP: 0.79, ... } — всё относительно 1 USD
+    window.__fxRates = { rates: { USD: 1, ...data.rates }, timestamp: Date.now() };
+    updateFXDisplay();
+  } catch (e) {
+    console.warn('FX fetch failed:', e);
+    // Резервные курсы на случай отсутствия интернета
+    if (!window.__fxRates) {
+      window.__fxRates = { rates: { USD: 1, RUB: 92, EUR: 0.92, CLP: 940, GBP: 0.79 }, timestamp: 0 };
+    }
+    updateFXDisplay();
+  } finally {
+    window.__fxFetching = false;
+  }
+}
+
+// Конвертирует amount из fromCur в toCur через USD как промежуточную базу
+function convertCurrency(amount, fromCur, toCur) {
+  if (fromCur === toCur) return amount;
+  if (!window.__fxRates) return amount;
+  const rates = window.__fxRates.rates;
+  // fromCur → USD: делим на курс fromCur
+  const rateFrom = rates[fromCur] || 1;
+  // USD → toCur: умножаем на курс toCur
+  const rateTo = rates[toCur] || 1;
+  return (amount / rateFrom) * rateTo;
+}
+
+function updateFXDisplay() {
+  const amountEl = document.getElementById('fin-amount');
+  if (!amountEl) return;
+  const amount = parseFloat(amountEl.value.replace(',', '.')) || 0;
+  const inputCur = window.__finInputCur || 'USD';
+  const rates = window.__fxRates?.rates || { USD:1, RUB:92, CLP:940, EUR:0.92 };
+  const selectedCurs = state.finance?.selectedCurrencies || ['USD'];
+  selectedCurs.forEach(cur => {
+    const el = document.getElementById('fx-' + cur);
+    if (!el) return;
+    if (amount === 0) { el.textContent = '0'; return; }
+    // fromCur → USD → toCur
+    const amountUSD = amount / (rates[inputCur] || 1);
+    const converted = amountUSD * (rates[cur] || 1);
+    el.textContent = cur === 'CLP' || cur === 'JPY' || cur === 'KRW'
+      ? Math.round(converted).toLocaleString('ru')
+      : converted.toFixed(2);
+  });
+}
+
 function addFinEntry(data) {
   if (!state.finance.entries) state.finance.entries = [];
+  const amount = Number(data.amount) || 0;
+  const currency = data.currency || 'USD';
+  // Конвертируем в USD для хранения
+  const rates = window.__fxRates?.rates || { USD:1, RUB:92, CLP:940, EUR:0.92 };
+  const amountUSD = (amount / (rates[currency] || 1));
   state.finance.entries.push({
     id: Date.now().toString(),
     type: data.type,
     category: data.category,
-    amount: Number(data.amount) || 0,
+    amount: amount,
+    currency: currency,
+    amountUSD: amountUSD,
     note: data.note || '',
     date: data.date || today(),
     timestamp: Date.now()
@@ -454,7 +1539,9 @@ function setCurrency(c) {
   save(); render();
 }
 
-function dateToISO(d) { return d.toISOString().slice(0, 10); }
+function dateToISO(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 function parseISO(s) { return new Date(s + 'T00:00:00'); }
 
 // Форматирует "26 апр 2026" или "сегодня", "вчера", "5 дней назад"
@@ -498,10 +1585,10 @@ function calcStreak(history) {
   let d = new Date();
   if (days[0] !== today()) {
     d.setDate(d.getDate() - 1);
-    if (days[0] !== d.toISOString().slice(0, 10)) return 0;
+    if (days[0] !== dateToISO(d)) return 0;
   }
   for (const day of days) {
-    if (day === d.toISOString().slice(0, 10)) { s++; d.setDate(d.getDate() - 1); }
+    if (day === dateToISO(d)) { s++; d.setDate(d.getDate() - 1); }
     else break;
   }
   return s;
@@ -513,7 +1600,7 @@ function calcMaxStreak(history) {
   let max = 1, cur = 1;
   for (let i = 1; i < days.length; i++) {
     const prev = new Date(days[i - 1]); prev.setDate(prev.getDate() + 1);
-    if (prev.toISOString().slice(0, 10) === days[i]) { cur++; max = Math.max(max, cur); }
+    if (dateToISO(prev) === days[i]) { cur++; max = Math.max(max, cur); }
     else cur = 1;
   }
   return max;
@@ -581,12 +1668,15 @@ function ensureMandatoryTasks() {
   Object.keys(MANDATORY_TASKS).forEach(sphereId => {
     if (!state.tasks[sphereId]) state.tasks[sphereId] = [];
     const validKeys = MANDATORY_TASKS[sphereId].map(m => m.mandatoryKey);
+    const dismissed = state.dismissedMandatory || [];
     // Удаляем устаревшие обязательные задачи (которые когда-то были, а теперь нет в MANDATORY_TASKS)
     state.tasks[sphereId] = state.tasks[sphereId].filter(t => {
       if (!t.mandatory) return true; // не обязательные оставляем
       return validKeys.includes(t.mandatoryKey || t.taskKey);
     });
     MANDATORY_TASKS[sphereId].forEach(mt => {
+      // Если пользователь явно удалил эту задачу — не возвращаем
+      if (dismissed.includes(mt.mandatoryKey)) return;
       const existing = state.tasks[sphereId].find(t => t.mandatoryKey === mt.mandatoryKey || t.taskKey === mt.mandatoryKey);
       if (!existing) {
         state.tasks[sphereId].push({
@@ -616,6 +1706,7 @@ function makeInitial() {
     prefilledFlags: JSON.parse(JSON.stringify(PREFILLED_FLAGS)),
     tasks: buildMandatoryTasks(),
     history: [], stagesUnlocked: {}, achievementsUnlocked: {}, stageReflections: {},
+    dismissedMandatory: [],
     startedAt: today(), lastBackup: null, bannerDismissedDate: null,
     finance: {
       entries: [],
@@ -660,7 +1751,7 @@ function makeInitial() {
 let state = null;
 let view = {
   tab: 'tree', sphereId: null, stageId: null, achId: null, addingTask: false, onboardStep: 0,
-  confirmUndoId: null, contextVisible: false, addMode: 'simple',
+  confirmUndoId: null, contextVisible: false, editingGoalSphere: null, addMode: 'simple',
   countersFilter: 'all', countersPeriod: 'all',
   customFrom: null, customTo: null,
   calendarVisible: false,
@@ -694,6 +1785,11 @@ let view = {
   // Тело
   bodyAdding: false,
   bodyEditingHeight: false,
+  bodyTab: 'workout',       // 'workout' | 'nutrition' | 'measures'
+  workoutWeek: 0,
+  workoutDay: null,
+  workoutEx: null,
+  nutritionMeal: null,
   // Свёртки групп задач
   expandedGroups: {}
 };
@@ -960,6 +2056,58 @@ function checkAdaptiveNorms() {
   });
 }
 
+// === БАЗОВЫЕ РЕКОМЕНДАЦИИ ПО ПИТАНИЮ ===
+// === ПЛАН ПИТАНИЯ — простой и конкретный ===
+const NUTRITION_PLAN = {
+  note: 'Пример здорового дня питания для активного взрослого (~70–80 кг). Мужчинам и тем кто тренируется интенсивно — увеличь порции на 20–25%.',
+  meals: [
+    {
+      emoji: '🌅', name: 'Завтрак', time: '7:00–8:00',
+      items: ['Овсянка — 6 ст.л. сухой крупы', 'Молоко или вода — 1 стакан', '1 банан', '2 варёных или жареных яйца'],
+      contains: 'Медленные углеводы, белок, калий. Даёт энергию на несколько часов без резкого скачка сахара.',
+      kcal: '~500 ккал'
+    },
+    {
+      emoji: '🍎', name: 'Перекус', time: '10:30–11:00',
+      items: ['Горсть орехов — 20–25г (грецкие или миндаль)', '1 яблоко или горсть ягод', 'Греческий йогурт или творог — 150г без сахара'],
+      contains: 'Полезные жиры, клетчатка, белок. Держит до обеда.',
+      kcal: '~300 ккал'
+    },
+    {
+      emoji: '🍗', name: 'Обед', time: '13:00–14:00',
+      items: ['Курица или рыба — 150г (запечённая или варёная)', 'Гречка или бурый рис — 5 ст.л. сухой крупы', 'Большая тарелка овощей — огурец, помидор, перец, зелень', '1 ч.л. оливкового масла на овощи'],
+      contains: 'Основной белок дня, углеводы для энергии, клетчатка и витамины. Оливковое масло снижает воспаление.',
+      kcal: '~650 ккал'
+    },
+    {
+      emoji: '🥚', name: 'Перекус 2', time: '16:00–17:00',
+      items: ['2 варёных яйца', '2 цельнозерновых хлебца', '1 помидор или огурец'],
+      contains: 'Лёгкий белок и углеводы перед вечером. Не перегружает, не даёт проголодаться.',
+      kcal: '~250 ккал'
+    },
+    {
+      emoji: '🐟', name: 'Ужин', time: '19:00–20:00',
+      items: ['Рыба (лосось, треска, скумбрия) или курица — 150г', 'Тушёные или запечённые овощи — большая порция', '1–2 варёные картофелины или 4 ст.л. гречки'],
+      contains: 'Рыба 2–3 раза в неделю — омега-3 для сердца и суставов. Овощи на ужин — лёгкость и витамины.',
+      kcal: '~550 ккал'
+    },
+    {
+      emoji: '🌙', name: 'Перед сном (если голоден)', time: '21:00–22:00',
+      items: ['Творог 5% — 150г', 'Щепотка корицы или ягоды'],
+      contains: 'Медленный белок — питает мышцы ночью. Не утяжеляет желудок. Пропусти если не голоден.',
+      kcal: '~180 ккал'
+    }
+  ],
+  rules: [
+    '💧 Вода — 1,5–2 литра в день. Без газировки, соков и энергетиков',
+    '🚫 Убрать: сахар, алкоголь, фастфуд, всё жареное во фритюре',
+    '🥦 Овощи — в каждый основной приём. Минимум 400г в день',
+    '🐟 Жирная рыба (лосось, скумбрия, сельдь) — хотя бы 2 раза в неделю',
+    '⏰ Последний приём пищи — за 2–3 часа до сна'
+  ]
+};
+
+
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -970,6 +2118,7 @@ function load() {
   if (state.lastBackup === undefined) state.lastBackup = null;
   if (state.bannerDismissedDate === undefined) state.bannerDismissedDate = null;
   if (!state.finance) state.finance = { entries: [], cushion: 0, currency: 'USD' };
+  if (!state.finance.selectedCurrencies) state.finance.selectedCurrencies = ['USD', 'RUB'];
   if (!state.finance.entries) state.finance.entries = [];
   if (state.finance.cushion === undefined) state.finance.cushion = 0;
   if (!state.finance.currency) state.finance.currency = 'USD';
@@ -1014,12 +2163,40 @@ function load() {
   // Адаптивные нормы
   if (!state.adaptive) state.adaptive = { adjustments: {} };
   if (!state.adaptive.adjustments) state.adaptive.adjustments = {};
+  // Удалённые обязательные задачи (чтобы не возвращались)
+  if (!state.dismissedMandatory) state.dismissedMandatory = [];
   // Гарантируем что обязательные задачи всегда есть
   ensureMandatoryTasks();
   state.history.forEach(h => { if (!h.taskKey) h.taskKey = null; });
   render();
 }
-function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
+function save() {
+  // Детект апгрейда уровня — общего ранга и сферных уровней
+  if (state) {
+    try {
+      const cur = { rank: rank(totalXP()).level, spheres: {} };
+      SPHERES.forEach(s => { cur.spheres[s.id] = Math.floor(sphereXP(s.id) / 200) + 1; });
+      if (state.__seen) {
+        const prev = state.__seen;
+        if (cur.rank > (prev.rank || 1)) {
+          const r = rank(totalXP());
+          setTimeout(() => { showCelebration(r.name, 'Новый уровень'); }, 80);
+        }
+        SPHERES.forEach(s => {
+          const pl = (prev.spheres && prev.spheres[s.id]) || 1;
+          if ((cur.spheres[s.id] || 1) > pl) {
+            setTimeout(() => {
+              if (typeof showToast === 'function') showToast(`${s.emoji} ${s.name} · уровень ${cur.spheres[s.id]}`, s.color);
+              fireConfetti([s.color, '#fff', '#A78BFA']);
+            }, 220);
+          }
+        });
+      }
+      state.__seen = cur;
+    } catch {}
+  }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+}
 
 function totalXP() { return state.history.reduce((s, h) => s + h.xp, 0); }
 function totalHours() { return state.history.reduce((s, h) => s + (h.hours || 0), 0); }
@@ -1111,7 +2288,35 @@ function checkUnlocks() {
   return unlocked;
 }
 
+function fireConfetti(colors, originX, originY) {
+  colors = colors || ['#A78BFA', '#FF4DD8', '#10E891', '#FFD93D', '#00E5FF'];
+  const root = document.createElement('div');
+  root.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:10000;overflow:hidden;';
+  const cx = originX != null ? originX : window.innerWidth / 2;
+  const cy = originY != null ? originY : window.innerHeight / 2;
+  const N = 70;
+  for (let i = 0; i < N; i++) {
+    const p = document.createElement('div');
+    const angle = (Math.PI * 2 * i / N) + (Math.random() - 0.5) * 0.4;
+    const dist = 180 + Math.random() * 380;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist + 240; // bias down (gravity)
+    const w = 6 + Math.random() * 6;
+    const h = (2 + Math.random() * 4);
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const rot = (Math.random() - 0.5) * 900;
+    const dur = 1.3 + Math.random() * 0.9;
+    p.style.cssText = `position:absolute;left:${cx}px;top:${cy}px;width:${w}px;height:${w}px;background:${color};border-radius:${Math.random()<0.5?'1px':'50%'};--dx:${dx}px;--dy:${dy}px;--rot:${rot}deg;animation:confetti-fall ${dur}s cubic-bezier(.2,.6,.4,1) forwards;box-shadow:0 0 8px ${color}80;`;
+    root.appendChild(p);
+  }
+  document.body.appendChild(root);
+  setTimeout(() => root.remove(), 2400);
+  // tactile feedback
+  if (navigator.vibrate) try { navigator.vibrate([10, 30, 10]); } catch {}
+}
+
 function showCelebration(title, subtitle) {
+  fireConfetti();
   const el = document.createElement('div');
   el.style.cssText = 'position: fixed; inset: 0; background: radial-gradient(circle, rgba(167,139,250,0.3), rgba(0,0,0,0.85)); display: flex; align-items: center; justify-content: center; z-index: 9999; pointer-events: none; animation: cel-in 0.5s;';
   el.innerHTML = `<div style="text-align: center; animation: cel-pop 0.8s;"><div style="font-size: 80px; background: linear-gradient(135deg,#A78BFA,#FF4DD8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">✦</div><div style="font-size: 11px; color: #A78BFA; letter-spacing: 0.4em; text-transform: uppercase; margin-top: 4px;">${subtitle || ''}</div><div style="font-size: 22px; color: #fff; letter-spacing: 0.05em; margin-top: 8px; font-weight: 600;">${title}</div></div>`;
@@ -1205,9 +2410,14 @@ function addTask(sphereId, taskData) {
 
 function removeTask(sphereId, taskId) {
   const task = (state.tasks[sphereId] || []).find(t => t.id === taskId);
-  if (task && task.mandatory) {
-    alert('Эту задачу нельзя удалить — она обязательная.');
-    return;
+  if (!task) return;
+  if (task.mandatory) {
+    if (!confirm(`Удалить «${task.title}»?\n\nЭта задача была заранее предложена приложением. Если удалишь — она не вернётся при обновлении.`)) return;
+    // Чтобы не возвращалась при reconcile — добавляем в список отказов
+    if (!state.dismissedMandatory) state.dismissedMandatory = [];
+    if (task.mandatoryKey && !state.dismissedMandatory.includes(task.mandatoryKey)) {
+      state.dismissedMandatory.push(task.mandatoryKey);
+    }
   }
   state.tasks[sphereId] = state.tasks[sphereId].filter(t => t.id !== taskId);
   save(); render();
@@ -1428,7 +2638,7 @@ function renderOnboarding() {
       const isPrefilled = state.prefilledFlags?.[sphere.id]?.[q.id];
       return `<div style="margin-bottom: 18px;"><div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;"><label style="font-size: 13px; color: #fff; font-weight: 500;">${q.label}</label>${isPrefilled ? `<span style="font-size: 9px; padding: 2px 8px; background: ${sphere.color}30; color: ${sphere.color}; border-radius: 8px; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 700; border: 1px solid ${sphere.color}60;">из разговора</span>` : ''}</div><textarea oninput="window.__app.setAnswer('${sphere.id}', '${q.id}', this.value)" placeholder="${escapeHtml(q.placeholder)}" rows="3" style="width: 100%; padding: 11px 13px; background: ${isPrefilled ? `${sphere.color}15` : 'rgba(255,255,255,0.04)'}; border: 1px solid ${isPrefilled ? `${sphere.color}50` : 'rgba(255,255,255,0.08)'}; border-radius: 10px; color: #fff; font-size: 13px; line-height: 1.5; resize: vertical; min-height: 56px; outline: none;">${escapeHtml(val)}</textarea></div>`;
     }).join('');
-    content = `<div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;"><div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, ${sphere.color}40, ${sphere.color}10); border: 1px solid ${sphere.color}; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 0 20px ${sphere.glow};">${sphere.emoji}</div><div><div style="font-size: 10px; letter-spacing: 0.25em; color: ${sphere.color}; text-transform: uppercase; font-weight: 700;">Сфера ${step} из 6</div><h2 style="font-size: 22px; margin: 2px 0 0; font-weight: 700; color: #fff;">${sphere.name}</h2></div></div>${inputs}<div style="display: flex; gap: 10px; margin-top: 24px;"><button onclick="window.__app.prev()" style="padding: 12px 18px; background: rgba(255,255,255,0.05); color: #b0a0d0; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; font-size: 13px; cursor: pointer;">← Назад</button><button onclick="window.__app.next()" style="flex: 1; padding: 12px 18px; background: linear-gradient(135deg,${sphere.color},${sphere.color}cc); color: #000; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 0.05em; box-shadow: 0 0 20px ${sphere.glow};">${step === SPHERES.length ? 'К ИТОГУ' : 'ДАЛЬШЕ'} →</button></div>`;
+    content = `<div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;"><div style="font-size: 32px; color: ${sphere.color}; text-shadow: 0 0 12px ${sphere.glow};">${sphere.emoji}</div><div><div style="font-size: 10px; letter-spacing: 0.25em; color: ${sphere.color}; text-transform: uppercase; font-weight: 700;">Сфера ${step} из 6</div><h2 style="font-size: 22px; margin: 2px 0 0; font-weight: 700; color: #fff;">${sphere.name}</h2></div></div>${inputs}<div style="display: flex; gap: 10px; margin-top: 24px;"><button onclick="window.__app.prev()" style="padding: 12px 18px; background: rgba(255,255,255,0.05); color: #b0a0d0; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; font-size: 13px; cursor: pointer;">← Назад</button><button onclick="window.__app.next()" style="flex: 1; padding: 12px 18px; background: linear-gradient(135deg,${sphere.color},${sphere.color}cc); color: #000; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 0.05em; box-shadow: 0 0 20px ${sphere.glow};">${step === SPHERES.length ? 'К ИТОГУ' : 'ДАЛЬШЕ'} →</button></div>`;
   } else if (isFinal) {
     content = `<div style="font-size: 11px; letter-spacing: 0.3em; color: #A78BFA; text-transform: uppercase; margin-bottom: 12px; font-weight: 600;">Карта готова</div><h2 style="font-size: 26px; font-weight: 700; margin: 0 0 20px; line-height: 1.2; background: linear-gradient(135deg,#fff,#A78BFA); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Контекст записан</h2><p style="font-size: 14px; color: #b0a0d0; line-height: 1.7; margin-bottom: 16px;">7 этапов на 3 года.</p><button onclick="window.__app.finishOnboarding()" style="padding: 14px 28px; background: linear-gradient(135deg,#A78BFA,#FF4DD8); color: #fff; border: none; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 0.15em; box-shadow: 0 4px 20px rgba(167,139,250,0.5);">НАЧАТЬ ПУТЬ ✦</button>`;
   }
@@ -1452,7 +2662,7 @@ function renderApp() {
   if (shouldShowBackupBanner()) {
     const daysSinceLast = state.lastBackup ? daysBetween(state.lastBackup, today()) : null;
     const subText = daysSinceLast === null ? 'Ты ещё ни разу не сохранял бэкап' : daysSinceLast === 1 ? 'Прошёл 1 день с последнего бэкапа' : `Прошло ${daysSinceLast} ${plural(daysSinceLast, 'день', 'дня', 'дней')} с последнего бэкапа`;
-    banner = `<div style="background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(167,139,250,0.1)); border-bottom: 1px solid rgba(0,229,255,0.3); padding: 14px 18px; display: flex; align-items: center; gap: 12px; animation: slide-down 0.4s;"><div style="font-size: 24px; flex-shrink: 0; filter: drop-shadow(0 0 8px rgba(0,229,255,0.6));">💾</div><div style="flex: 1; min-width: 0;"><div style="font-size: 13px; color: #fff; font-weight: 600; margin-bottom: 2px;">Сделай бэкап</div><div style="font-size: 11px; color: #b0a0d0; line-height: 1.4;">${subText}.</div></div><button onclick="window.__app.backupAndMark()" style="background: linear-gradient(135deg, #00E5FF, #A78BFA); color: #000; border: none; border-radius: 10px; padding: 10px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; flex-shrink: 0; box-shadow: 0 0 16px rgba(0,229,255,0.5);">↓ Скачать</button><button onclick="window.__app.dismissBanner()" title="Скрыть до завтра" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #b0a0d0; cursor: pointer; padding: 0; width: 28px; height: 28px; border-radius: 50%; font-size: 14px; flex-shrink: 0;">✕</button></div>`;
+    banner = `<div style="background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(167,139,250,0.1)); border-bottom: 1px solid rgba(0,229,255,0.3); padding: 14px 18px; display: flex; align-items: center; gap: 12px; animation: slide-down 0.4s;"><div style="font-size: 24px; flex-shrink: 0; text-shadow: 0 0 8px rgba(0,229,255,0.6);">💾</div><div style="flex: 1; min-width: 0;"><div style="font-size: 13px; color: #fff; font-weight: 600; margin-bottom: 2px;">Сделай бэкап</div><div style="font-size: 11px; color: #b0a0d0; line-height: 1.4;">${subText}.</div></div><button onclick="window.__app.backupAndMark()" style="background: linear-gradient(135deg, #00E5FF, #A78BFA); color: #000; border: none; border-radius: 10px; padding: 10px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; flex-shrink: 0; box-shadow: 0 0 16px rgba(0,229,255,0.5);">↓ Скачать</button><button onclick="window.__app.dismissBanner()" title="Скрыть до завтра" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #b0a0d0; cursor: pointer; padding: 0; width: 28px; height: 28px; border-radius: 50%; font-size: 14px; flex-shrink: 0;">✕</button></div>`;
   }
 
   const header = `<div style="padding: 18px 18px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);">
@@ -1460,7 +2670,6 @@ function renderApp() {
       <div>
         <div style="font-size: 10px; letter-spacing: 0.25em; color: #A78BFA; text-transform: uppercase; font-weight: 600;">${todayStr}</div>
         <div style="font-size: 20px; font-weight: 700; margin-top: 4px; color: #fff;">${r.name}</div>
-        <div style="font-size: 10px; color: #6a5a8a; margin-top: 2px;">День ${dp + 1} из 1095</div>
       </div>
       <div style="text-align: right;">
         <div style="font-size: 10px; letter-spacing: 0.25em; color: #FF4DD8; text-transform: uppercase; font-weight: 600;">XP</div>
@@ -1474,12 +2683,7 @@ function renderApp() {
       <span style="color:#00E5FF;">◷ ${th.toFixed(1)} ч</span>
       <span style="color:#A78BFA;">⚡ ${Object.keys(state.achievementsUnlocked).length}/${ACHIEVEMENTS.length}</span>
     </div>
-    <div style="margin-top: 10px; padding: 8px 10px; background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-      <div style="font-size: 10px; color: #A78BFA; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;">Отчёт</div>
-      <div style="font-size: 11px; color: #fff; font-weight: 600; flex: 1; text-align: center;">${rpLabel}${rp.isFirst ? ' <span style="color:#FFAA00; font-size:9px;">(старт)</span>' : ''}</div>
-      <div style="font-size: 10px; color: ${rpDaysLeft <= 3 ? '#FFAA00' : '#8870a8'};">${rpDaysLeft === 0 ? 'сегодня закр.' : rpDaysLeft < 0 ? 'закрыт' : `${rpDaysLeft} ${plural(rpDaysLeft, 'день', 'дня', 'дней')}`}</div>
-    </div>
-    <div id="prayer-strip" style="margin-top: 6px; padding: 8px 10px; background: rgba(16,232,145,0.06); border: 1px solid rgba(16,232,145,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+    <div id="prayer-strip" style="margin-top: 10px; padding: 8px 10px; background: rgba(16,232,145,0.06); border: 1px solid rgba(16,232,145,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
       <div style="font-size: 10px; color: #10E891; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;">☾ Молитва</div>
       <div id="prayer-strip-text" style="font-size: 11px; color: #b0a0d0; flex: 1; text-align: center;">загрузка...</div>
       <div style="font-size: 9px; color: #6a5a8a;">${escapeHtml(state.prayerTimes.city)}</div>
@@ -1488,13 +2692,12 @@ function renderApp() {
 
   let content = '';
   if (view.tab === 'tree') content = renderTree();
-  else if (view.tab === 'path') content = renderPath();
-  else if (view.tab === 'ach') content = renderAchievements();
-  else if (view.tab === 'counters') content = renderCounters();
-  else if (view.tab === 'history') content = renderHistory();
+  else if (view.tab === 'goals') content = renderGoals();
+  else if (view.tab === 'path') content = renderPathStages();
+  else if (view.tab === 'history') content = renderCounters() + `<div style="margin: 24px 0 16px; display: flex; align-items: center; gap: 10px;"><div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div><div style="font-size:9px;letter-spacing:0.25em;color:#6a5a8a;text-transform:uppercase;font-weight:700;white-space:nowrap;">Хроника</div><div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div></div>` + renderHistory();
   else if (view.tab === 'kb') content = renderKB();
 
-  const tabs = `<div style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(10,6,18,0.95); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.06); display: flex; padding: 10px 0 14px; z-index: 50;"><div style="max-width: 720px; margin: 0 auto; display: flex; width: 100%;">${[{ id: 'tree', label: 'Древо', icon: '✦' }, { id: 'path', label: 'Путь', icon: '◈' }, { id: 'counters', label: 'Учёт', icon: '◷' }, { id: 'kb', label: 'База', icon: '📚' }, { id: 'ach', label: 'Награды', icon: '★' }, { id: 'history', label: 'Хроника', icon: '☰' }].map(t => `<button onclick="window.__app.tab('${t.id}')" style="flex: 1; background: none; border: none; padding: 6px 4px; cursor: pointer; color: ${view.tab === t.id ? '#A78BFA' : '#5a4a78'};"><div style="font-size: 18px; margin-bottom: 4px; ${view.tab === t.id ? 'text-shadow: 0 0 12px rgba(167,139,250,0.8);' : ''}">${t.icon}</div><div style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: ${view.tab === t.id ? '700' : '500'};">${t.label}</div></button>`).join('')}</div></div>`;
+  const tabs = `<div style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(10,6,18,0.95); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.06); display: flex; padding: 10px 0 14px; z-index: 50;"><div style="max-width: 720px; margin: 0 auto; display: flex; width: 100%;">${[{ id: 'tree', label: 'Древо', icon: '✦' }, { id: 'goals', label: 'Цели', icon: '◎' }, { id: 'path', label: 'Путь', icon: '◈' }, { id: 'kb', label: 'База', icon: '📚' }, { id: 'history', label: 'Хроника', icon: '☰' }].map(t => `<button onclick="window.__app.tab('${t.id}')" style="flex: 1; background: none; border: none; padding: 6px 4px; cursor: pointer; color: ${view.tab === t.id ? '#A78BFA' : '#5a4a78'};"><div style="font-size: 18px; margin-bottom: 4px; ${view.tab === t.id ? 'text-shadow: 0 0 12px rgba(167,139,250,0.8);' : ''}">${t.icon}</div><div style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: ${view.tab === t.id ? '700' : '500'};">${t.label}</div></button>`).join('')}</div></div>`;
 
   let modal = '';
   if (view.sphereId) modal = renderSphereModal();
@@ -1508,25 +2711,159 @@ function renderApp() {
 }
 
 function renderTree() {
-  let html = '<div style="text-align: center; margin-bottom: 24px;"><div style="font-size: 10px; letter-spacing: 0.3em; color: #A78BFA; text-transform: uppercase; font-weight: 700;">Шесть ветвей</div><p style="font-size: 13px; color: #8870a8; margin: 8px 0 0;">Тапни на сферу</p></div>';
-  html += '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">';
+  let html = '<div style="text-align: center; margin-bottom: 20px;"><div style="font-size: 10px; letter-spacing: 0.3em; color: #A78BFA; text-transform: uppercase; font-weight: 700;">Шесть ветвей</div><p style="font-size: 13px; color: #8870a8; margin: 6px 0 0;">Тапни на сферу</p></div>';
+  html += '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">';
+
   SPHERES.forEach(s => {
     const sxp = sphereXP(s.id);
     const sh = sphereHours(s.id);
     const tc = state.tasks[s.id]?.length || 0;
     const lvl = Math.floor(sxp / 200) + 1;
-    html += `<button onclick="window.__app.openSphere('${s.id}')" style="background: linear-gradient(135deg, ${s.color}20, ${s.color}05); border: 1px solid ${s.color}40; border-radius: 14px; padding: 16px 14px; cursor: pointer; text-align: left; position: relative; overflow: hidden;"><div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle, ${s.color}40, transparent 70%);"></div><div style="font-size: 26px; margin-bottom: 10px; filter: drop-shadow(0 0 8px ${s.glow});">${s.emoji}</div><div style="font-size: 15px; color: #fff; margin-bottom: 2px; font-weight: 600;">${s.name}</div><div style="font-size: 10px; color: ${s.color}; line-height: 1.3; margin-bottom: 12px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;">${s.desc}</div><div style="display: flex; justify-content: space-between; align-items: flex-end;"><div><div style="font-size: 9px; color: #6a5a8a; letter-spacing: 0.15em;">УР.</div><div style="font-size: 22px; color: ${s.color}; font-weight: 800; line-height: 1; text-shadow: 0 0 12px ${s.glow};">${lvl}</div></div><div style="text-align: right;"><div style="font-size: 11px; color: #fff; font-weight: 600;">${sxp} XP</div>${sh > 0 ? `<div style="font-size: 9px; color: #00E5FF;">◷ ${sh.toFixed(1)} ч</div>` : ''}<div style="font-size: 10px; color: #6a5a8a;">${tc} ${plural(tc, 'задача', 'задачи', 'задач')}</div></div></div></button>`;
+
+    // Цель и прогресс к финалу с учётом срока
+    const ctx = state.context?.[s.id] || {};
+    const goalText = ctx.goal || ctx.wanted || ctx.criteria || '';
+    const deadlineMonths = ctx.deadline || 36;
+    const prog = sphereProgressForStage(s.id, 's6');
+    const pct = Math.min(100, Math.round(prog.pct * (36 / deadlineMonths)));
+
+    html += `<button onclick="window.__app.openSphere('${s.id}')" style="
+      background: linear-gradient(160deg, ${s.color}1a, ${s.color}04);
+      border: 1px solid ${s.color}40;
+      border-radius: 16px;
+      padding: 14px 13px 12px;
+      cursor: pointer;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    ">
+      <div style="position: absolute; top: -16px; right: -16px; width: 70px; height: 70px; border-radius: 50%; background: radial-gradient(circle, ${s.color}35, transparent 70%); pointer-events: none;"></div>
+
+      <!-- Кольцо прогресса вокруг эмодзи -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <div style="position: relative; width: 58px; height: 58px;">
+          <svg width="58" height="58" viewBox="0 0 58 58" style="transform: rotate(-90deg); display: block;">
+            <circle cx="29" cy="29" r="25" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="3"/>
+            <circle cx="29" cy="29" r="25" fill="none" stroke="${pct >= 100 ? '#10E891' : s.color}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${(2*Math.PI*25).toFixed(2)}" stroke-dashoffset="${((2*Math.PI*25)*(1-pct/100)).toFixed(2)}" style="filter: drop-shadow(0 0 5px ${s.glow}); transition: stroke-dashoffset .8s ease;"/>
+          </svg>
+          <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; color: ${s.color}; text-shadow: 0 0 10px ${s.glow}; line-height: 1;">${s.emoji}</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 9px; color: #6a5a8a; letter-spacing: 0.12em;">УР.</div>
+          <div style="font-size: 20px; color: ${s.color}; font-weight: 800; line-height: 1; text-shadow: 0 0 10px ${s.glow};">${lvl}</div>
+        </div>
+      </div>
+
+      <!-- Название -->
+      <div style="font-size: 15px; color: #fff; font-weight: 700; margin-bottom: 2px;">${s.name}</div>
+
+      <!-- Цель — если есть -->
+      ${goalText
+        ? `<div style="font-size: 10px; color: #8870a8; line-height: 1.35; margin-bottom: 10px; min-height: 28px;">${escapeHtml(goalText.length > 52 ? goalText.slice(0, 52) + '…' : goalText)}</div>`
+        : `<div style="font-size: 10px; color: #3a2a58; font-style: italic; margin-bottom: 10px; min-height: 28px;">Цель не задана</div>`
+      }
+
+      <!-- XP + % к цели -->
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <div style="font-size: 10px; color: #6a5a8a;">${sxp} XP${sh > 0 ? ` · ${sh.toFixed(0)}ч` : ''}</div>
+        <div style="font-size: 11px; color: ${pct >= 100 ? '#10E891' : s.color}; font-weight: 700;">${pct}%</div>
+      </div>
+    </button>`;
   });
+
   html += '</div>';
   return html;
 }
 
-function renderPath() {
+// === ВКЛАДКА «ЦЕЛИ» ===
+function renderGoals() {
+  let html = '';
+
+  // Заголовок
+  html += '<div style="text-align:center;margin-bottom:20px;">'
+    + '<div style="font-size:10px;letter-spacing:0.3em;color:#A78BFA;text-transform:uppercase;font-weight:700;">Мои цели</div>'
+    + '<p style="font-size:12px;color:#6a5a8a;margin:5px 0 0;">Тапни на цель чтобы изменить</p>'
+    + '</div>';
+
+  SPHERES.forEach(s => {
+    const ctx = state.context?.[s.id] || {};
+    const goalText = ctx.goal || ctx.wanted || ctx.criteria || '';
+    // Срок в месяцах — если задан, считаем от него, иначе от 36
+    const deadlineMonths = ctx.deadline || 36;
+    // Пересчитываем прогресс от дедлайна (не от s6 который всегда 36 мес)
+    const totalMonths = 36; // s6 = 36 месяцев
+    const scaleFactor = totalMonths / deadlineMonths;
+    const prog = sphereProgressForStage(s.id, 's6');
+    const pct = Math.min(100, Math.round(prog.pct * scaleFactor));
+    const type = SPHERE_TARGET_TYPE[s.id];
+    const unit = type === 'hours' ? 'ч' : '';
+    const current = type === 'hours' ? prog.current.toFixed(1) : Math.round(prog.current);
+    // Цель по дедлайну = target * (deadline/36)
+    const fullTarget = prog.target;
+    const deadlineTarget = type === 'hours'
+      ? (fullTarget * deadlineMonths / totalMonths).toFixed(0)
+      : Math.round(fullTarget * deadlineMonths / totalMonths);
+
+    const isEditing = view.editingGoalSphere === s.id;
+
+    html += `<div style="padding:14px;background:linear-gradient(135deg,${s.color}12,${s.color}04);border:1px solid ${s.color}35;border-radius:14px;margin-bottom:10px;">`;
+
+    // Шапка карточки
+    html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div style="font-size:22px;color:${s.color};text-shadow:0 0 10px ${s.glow};">${s.emoji}</div>
+      <div style="flex:1;font-size:14px;color:#fff;font-weight:700;">${s.name}</div>
+      <button onclick="window.__app.editGoal('${s.id}')" style="padding:5px 12px;background:${isEditing?s.color+'30':'rgba(255,255,255,0.05)'};border:1px solid ${isEditing?s.color+'80':'rgba(255,255,255,0.1)'};border-radius:7px;color:${isEditing?s.color:'#8870a8'};font-size:11px;cursor:pointer;font-weight:600;">${isEditing?'↑ Сохранить':'✎ Изменить'}</button>
+    </div>`;
+
+    // Редактирование или отображение
+    if (isEditing) {
+      const currentDeadline = ctx.deadline || 12;
+      html += `<textarea id="goal-edit-${s.id}" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.4);border:1px solid ${s.color}60;border-radius:9px;color:#fff;font-size:13px;line-height:1.5;resize:none;outline:none;min-height:70px;font-family:inherit;margin-bottom:8px;" placeholder="Напиши цель конкретно — чего хочешь достичь в этой сфере">${escapeHtml(goalText)}</textarea>`;
+      html += `<div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:11px;color:#8870a8;flex-shrink:0;">Срок:</div>
+        <select id="goal-deadline-${s.id}" style="flex:1;padding:8px 10px;background:rgba(0,0,0,0.4);border:1px solid ${s.color}40;border-radius:8px;color:#fff;font-size:12px;outline:none;">
+          ${[1,2,3,6,9,12,18,24,36].map(m => `<option value="${m}" ${currentDeadline==m?'selected':''}>${m} ${m===1?'месяц':m<5?'месяца':'месяцев'}</option>`).join('')}
+        </select>
+      </div>`;
+    } else {
+      const deadline = ctx.deadline;
+      const deadlineLabel = deadline ? `· ${deadline} ${deadline===1?'месяц':deadline<5?'месяца':'месяцев'}` : '';
+      html += `<div onclick="window.__app.editGoal('${s.id}')" style="font-size:13px;color:${goalText?'#d0c0e8':'#3a2a58'};line-height:1.5;margin-bottom:6px;min-height:36px;cursor:pointer;font-style:${goalText?'normal':'italic'};">${goalText ? escapeHtml(goalText) : 'Цель не задана — нажми «Изменить»'}</div>`;
+      if (deadline) html += `<div style="font-size:10px;color:#6a5a8a;margin-bottom:8px;">⏱ Срок: ${deadline} ${deadline===1?'месяц':deadline<5?'месяца':'месяцев'}</div>`;
+      else html += `<div style="margin-bottom:8px;"></div>`;
+    }
+
+    // Прогресс-бар
+    html += `<div style="height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-bottom:6px;">
+      <div style="height:100%;width:${pct}%;background:${pct>=100?'#10E891':s.color};border-radius:3px;transition:width .4s;"></div>
+    </div>`;
+
+    // Цифры
+    html += `<div style="display:flex;justify-content:space-between;font-size:10px;color:#6a5a8a;">
+      <span>${current} ${unit} из ${deadlineTarget} ${unit}</span>
+      <span style="color:${pct>=100?'#10E891':s.color};font-weight:700;">${pct}%</span>
+    </div>`;
+
+    html += '</div>';
+  });
+
+  return html;
+}
+
+// === ВКЛАДКА «ПУТЬ» — этапы ===
+function renderPathStages() {
   const dp = daysPassed();
   const currentIdx = PATH.findIndex(s => !state.stagesUnlocked[s.id]);
-  let html = '<div style="text-align: center; margin-bottom: 24px;"><div style="font-size: 10px; letter-spacing: 0.3em; color: #A78BFA; text-transform: uppercase; font-weight: 700;">Карта пути · 3 года</div><p style="font-size: 13px; color: #8870a8; margin: 8px 0 0;">Этап откроется когда все 6 сфер дотянутся</p></div>';
 
-  // Карточка текущего этапа с детальным разбором
+  let html = '<div style="text-align:center;margin-bottom:20px;">'
+    + '<div style="font-size:10px;letter-spacing:0.3em;color:#A78BFA;text-transform:uppercase;font-weight:700;">Карта пути · 3 года</div>'
+    + '<p style="font-size:12px;color:#6a5a8a;margin:5px 0 0;">Этап откроется когда все сферы дотянутся</p>'
+    + '</div>';
+
+  // Карточка текущего этапа
   if (currentIdx > 0 && currentIdx < PATH.length) {
     const cur = PATH[currentIdx];
     const overallPct = stageOverallProgress(cur.id);
@@ -1539,25 +2876,25 @@ function renderPath() {
       target.setDate(target.getDate() + cur.days);
       targetDate = formatDateLong(dateToISO(target));
     }
-    html += `<div style="background: linear-gradient(135deg, rgba(167,139,250,0.18), rgba(255,77,216,0.08)); border: 1px solid rgba(167,139,250,0.4); border-radius: 14px; padding: 16px; margin-bottom: 18px; box-shadow: 0 0 20px rgba(167,139,250,0.15);">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+    html += `<div style="background:linear-gradient(135deg,rgba(167,139,250,0.18),rgba(255,77,216,0.08));border:1px solid rgba(167,139,250,0.4);border-radius:14px;padding:16px;margin-bottom:18px;box-shadow:0 0 20px rgba(167,139,250,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
         <div>
-          <div style="font-size: 10px; letter-spacing: 0.25em; color: #A78BFA; text-transform: uppercase; font-weight: 700;">Текущий этап</div>
-          <div style="font-size: 19px; color: #fff; font-weight: 700; margin-top: 3px;">${escapeHtml(cur.title)}</div>
-          <div style="font-size: 11px; color: #8870a8; margin-top: 2px;">${cur.days} дн. · самое раннее ${targetDate}</div>
+          <div style="font-size:10px;letter-spacing:0.25em;color:#A78BFA;text-transform:uppercase;font-weight:700;">Текущий этап</div>
+          <div style="font-size:19px;color:#fff;font-weight:700;margin-top:3px;">${escapeHtml(cur.title)}</div>
+          <div style="font-size:11px;color:#8870a8;margin-top:2px;">${cur.days} дн. · самое раннее ${targetDate}</div>
         </div>
-        <div style="text-align: right;">
-          <div style="font-size: 10px; letter-spacing: 0.25em; color: #FF4DD8; text-transform: uppercase; font-weight: 700;">Готово</div>
-          <div style="font-size: 28px; color: ${ready ? '#10E891' : '#fff'}; font-weight: 800; line-height: 1;">${overallPct}%</div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;letter-spacing:0.25em;color:#FF4DD8;text-transform:uppercase;font-weight:700;">Готово</div>
+          <div style="font-size:28px;color:${ready?'#10E891':'#fff'};font-weight:800;line-height:1;">${overallPct}%</div>
         </div>
       </div>
-      <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin-bottom: 12px;">
-        <div style="height: 100%; width: ${overallPct}%; background: ${ready ? 'linear-gradient(90deg,#10E891,#A78BFA)' : 'linear-gradient(90deg,#A78BFA,#FF4DD8)'}; box-shadow: 0 0 10px ${ready ? 'rgba(16,232,145,0.6)' : 'rgba(167,139,250,0.6)'};"></div>
+      <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-bottom:12px;">
+        <div style="height:100%;width:${overallPct}%;background:${ready?'linear-gradient(90deg,#10E891,#A78BFA)':'linear-gradient(90deg,#A78BFA,#FF4DD8)'};box-shadow:0 0 10px ${ready?'rgba(16,232,145,0.6)':'rgba(167,139,250,0.6)'};"></div>
       </div>
-      <div style="font-size: 10px; color: #b0a0d0; line-height: 1.5; margin-bottom: 12px;">
-        ${ready && enoughTime ? '<span style="color:#10E891; font-weight:700;">✓ Все сферы готовы и срок прошёл — этап откроется при следующем действии</span>' : ready && !enoughTime ? `<span style="color:#FFAA00;">Все сферы дотянулись, ждём ${cur.days - dp} ${plural(cur.days - dp, 'день', 'дня', 'дней')} времени</span>` : enoughTime ? '<span style="color:#FF4DD8;">Срок прошёл, но не все сферы дотянулись. Подтяни отстающие.</span>' : `<span>${cur.days - dp} ${plural(cur.days - dp, 'день', 'дня', 'дней')} до срока, и подтянуть отстающие сферы</span>`}
+      <div style="font-size:10px;color:#b0a0d0;line-height:1.5;margin-bottom:12px;">
+        ${ready&&enoughTime?'<span style="color:#10E891;font-weight:700;">✓ Все сферы готовы — этап откроется при следующем действии</span>':ready&&!enoughTime?`<span style="color:#FFAA00;">Сферы дотянулись, ждём ${cur.days-dp} ${plural(cur.days-dp,'день','дня','дней')}</span>`:enoughTime?'<span style="color:#FF4DD8;">Срок прошёл, но не все сферы дотянулись</span>':`<span>${cur.days-dp} ${plural(cur.days-dp,'день','дня','дней')} до срока</span>`}
       </div>
-      <div style="display: grid; grid-template-columns: 1fr; gap: 6px;">`;
+      <div style="display:grid;grid-template-columns:1fr;gap:6px;">`;
 
     SPHERES.forEach(sp => {
       const prog = sphereProgressForStage(sp.id, cur.id);
@@ -1565,48 +2902,45 @@ function renderPath() {
       const unit = targetType === 'hours' ? 'ч' : '';
       const formatNum = n => targetType === 'hours' ? n.toFixed(1) : Math.round(n);
       const isDone = prog.pct >= 100;
-      html += `<div style="background: rgba(0,0,0,0.25); border: 1px solid ${isDone ? sp.color + '60' : 'rgba(255,255,255,0.05)'}; border-left: 3px solid ${sp.color}; border-radius: 8px; padding: 9px 11px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px;">
-          <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
-            <span style="font-size: 16px; flex-shrink: 0;">${sp.emoji}</span>
-            <span style="font-size: 12px; color: #fff; font-weight: 600;">${sp.name}</span>
-            ${isDone ? '<span style="font-size: 10px; color: #10E891; font-weight: 700;">✓</span>' : ''}
+      html += `<div style="background:rgba(0,0,0,0.25);border:1px solid ${isDone?sp.color+'60':'rgba(255,255,255,0.05)'};border-left:3px solid ${sp.color};border-radius:8px;padding:9px 11px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
+            <span style="font-size:16px;color:${sp.color};text-shadow:0 0 8px ${sp.glow};flex-shrink:0;">${sp.emoji}</span>
+            <span style="font-size:12px;color:#fff;font-weight:600;">${sp.name}</span>
           </div>
-          <div style="text-align: right; flex-shrink: 0;">
-            <div style="font-size: 12px; color: ${isDone ? '#10E891' : '#fff'}; font-weight: 700; line-height: 1;">${formatNum(prog.current)}${unit} <span style="color:#6a5a8a; font-weight: 400;">/ ${prog.target}${unit}</span></div>
-            <div style="font-size: 9px; color: ${isDone ? '#10E891' : sp.color}; margin-top: 2px;">${Math.round(prog.pct)}%</div>
-          </div>
+          <div style="font-size:11px;color:${isDone?'#10E891':sp.color};font-weight:700;flex-shrink:0;">${isDone?'✓':Math.round(prog.pct)+'%'}</div>
         </div>
-        <div style="height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden;">
-          <div style="height: 100%; width: ${prog.pct}%; background: ${sp.color}; box-shadow: 0 0 6px ${sp.glow};"></div>
+        <div style="height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;">
+          <div style="height:100%;width:${Math.min(100,prog.pct)}%;background:${isDone?'#10E891':sp.color};"></div>
         </div>
+        <div style="font-size:9px;color:#6a5a8a;margin-top:3px;">${formatNum(prog.current)} ${unit} / ${formatNum(prog.target)} ${unit}</div>
       </div>`;
     });
-    html += `</div></div>`;
+
+    html += '</div></div>';
   }
 
-  html += '<div style="position: relative; padding-left: 40px;"><div style="position: absolute; left: 18px; top: 14px; bottom: 14px; width: 2px; background: linear-gradient(180deg, #A78BFA 0%, rgba(167,139,250,0.1) 100%); box-shadow: 0 0 8px rgba(167,139,250,0.5);"></div>';
-
-  PATH.forEach((s, i) => {
-    const unlocked = !!state.stagesUnlocked[s.id];
-    const isCurrent = i === currentIdx;
-    const isFog = !unlocked && !isCurrent;
-    const isFarFog = isFog && i > currentIdx + 1;
-    let targetDate = '';
-    if (state.startedAt) {
-      const start = parseISO(state.startedAt);
-      const target = new Date(start);
-      target.setDate(target.getDate() + s.days);
-      targetDate = `~${target.getDate()} ${MONTHS_RU_SHORT[target.getMonth()]} ${target.getFullYear()}`;
-    }
-
-    html += `<div style="position: relative; margin-bottom: 16px;"><div style="position: absolute; left: -32px; top: 8px; width: 26px; height: 26px; border-radius: 50%; background: ${unlocked ? 'linear-gradient(135deg,#A78BFA,#FF4DD8)' : isCurrent ? '#150a25' : '#0a0612'}; border: 2px solid ${unlocked ? '#A78BFA' : isCurrent ? '#A78BFA' : 'rgba(167,139,250,0.2)'}; display: flex; align-items: center; justify-content: center; box-shadow: ${unlocked || isCurrent ? '0 0 14px rgba(167,139,250,0.7)' : 'none'};"><span style="color: ${unlocked ? '#fff' : isCurrent ? '#A78BFA' : '#5a4a78'}; font-size: 12px; font-weight: 700;">${unlocked ? '✓' : isCurrent ? '◉' : '·'}</span></div><button onclick="window.__app.openStage('${s.id}')" style="width: 100%; text-align: left; background: ${unlocked ? 'linear-gradient(135deg, rgba(167,139,250,0.15), rgba(255,77,216,0.05))' : isCurrent ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.015)'}; border: 1px solid ${unlocked ? 'rgba(167,139,250,0.4)' : isCurrent ? 'rgba(167,139,250,0.3)' : 'rgba(255,255,255,0.05)'}; border-radius: 12px; padding: 14px 16px; cursor: pointer; opacity: ${isFog ? 0.45 : 1}; ${isFarFog ? 'filter: blur(0.5px);' : ''}"><div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;"><div style="font-size: 15px; color: ${unlocked || isCurrent ? '#fff' : '#5a4a78'}; font-weight: 600;">${isFarFog ? '∙∙∙∙∙∙∙∙∙∙∙∙' : escapeHtml(s.title)}</div><div style="font-size: 10px; color: #8870a8; letter-spacing: 0.05em; white-space: nowrap; margin-left: 8px;">${targetDate || ''}</div></div>${(unlocked || isCurrent) ? `<div style="font-size: 12px; color: #b0a0d0; line-height: 1.5;">${escapeHtml(s.hint)}</div>` : ''}${unlocked && state.stagesUnlocked[s.id] ? `<div style="font-size: 10px; color: #A78BFA; margin-top: 6px;">✓ Открыто ${formatDateRelative(state.stagesUnlocked[s.id])}</div>` : ''}</button></div>`;
+  // Все этапы
+  html += `<div style="font-size:10px;letter-spacing:0.2em;color:#6a5a8a;text-transform:uppercase;font-weight:700;margin-bottom:10px;">Все этапы</div>`;
+  PATH.forEach((stage, i) => {
+    if (i === 0) return;
+    const isUnlocked = !!state.stagesUnlocked[stage.id];
+    const isCurrent = !isUnlocked && (i === currentIdx);
+    const isFuture = !isUnlocked && !isCurrent;
+    const col = isUnlocked ? '#10E891' : isCurrent ? '#A78BFA' : '#3a2a58';
+    html += `<button onclick="window.__app.openStage('${stage.id}')" style="width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;background:${isUnlocked?'rgba(16,232,145,0.07)':isCurrent?'rgba(167,139,250,0.1)':'rgba(255,255,255,0.02)'};border:1px solid ${isUnlocked?'rgba(16,232,145,0.3)':isCurrent?'rgba(167,139,250,0.3)':'rgba(255,255,255,0.05)'};border-radius:12px;cursor:pointer;text-align:left;margin-bottom:6px;">
+      <div style="width:32px;height:32px;border-radius:50%;background:${col}20;border:2px solid ${col};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;color:${col};font-weight:700;">${isUnlocked?'✓':i}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;color:${isUnlocked?'#fff':isCurrent?'#fff':'#5a4a78'};font-weight:700;">${escapeHtml(stage.title)}</div>
+        <div style="font-size:10px;color:${col};margin-top:1px;">${stage.months} ${plural(stage.months,'месяц','месяца','месяцев')} · ${stage.xp} XP</div>
+      </div>
+      <div style="font-size:14px;color:${col};">›</div>
+    </button>`;
   });
-  html += '</div>';
+
   return html;
 }
 
-// === КАЛЕНДАРНАЯ ТЕПЛОВАЯ КАРТА ===
 function renderHeatmapMonth(monthStr, taskKey, sphereColor) {
   const [year, month] = monthStr.split('-').map(Number);
   const firstDay = new Date(year, month - 1, 1);
@@ -1808,7 +3142,7 @@ function renderCounters() {
     html += `<div style="margin-bottom: 12px;">
       <button onclick="window.__app.toggleGroup('${groupKey}')" style="width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: linear-gradient(135deg, ${sp.color}15, ${sp.color}05); border: 1px solid ${sp.color}40; border-left: 3px solid ${sp.color}; border-radius: 10px; cursor: pointer; text-align: left;">
         <div style="font-size: 14px; color: ${sp.color}; flex-shrink: 0; width: 16px;">${isOpen ? '▾' : '▸'}</div>
-        <div style="font-size: 20px; filter: drop-shadow(0 0 6px ${sp.glow}); flex-shrink: 0;">${sp.emoji}</div>
+        <div style="font-size: 22px; color: ${sp.color}; text-shadow: 0 0 10px ${sp.glow}; flex-shrink: 0;">${sp.emoji}</div>
         <div style="flex: 1; min-width: 0;">
           <div style="font-size: 13px; color: #fff; font-weight: 700;">${sp.name}</div>
           <div style="font-size: 10px; color: ${sp.color}; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 1px;">${items.length} ${plural(items.length, 'задача', 'задачи', 'задач')}</div>
@@ -1849,23 +3183,48 @@ function renderCounters() {
 function renderAchievements() {
   const total = ACHIEVEMENTS.length;
   const unlocked = Object.keys(state.achievementsUnlocked).length;
-  let html = `<div style="text-align: center; margin-bottom: 24px;"><div style="font-size: 10px; letter-spacing: 0.3em; color: #A78BFA; text-transform: uppercase; font-weight: 700;">Дерево достижений</div><p style="font-size: 13px; color: #8870a8; margin: 8px 0 0;">${unlocked} / ${total} разблокировано</p></div>`;
-  const branches = ['core', ...SPHERES.map(s => s.id)];
-  const branchLabels = { core: { name: 'Ствол', color: '#A78BFA', glow: 'rgba(167,139,250,0.5)' } };
-  SPHERES.forEach(s => branchLabels[s.id] = { name: s.name, color: s.color, glow: s.glow });
-  branches.forEach(br => {
-    const items = ACHIEVEMENTS.filter(a => a.branch === br);
-    if (!items.length) return;
-    const meta = branchLabels[br];
-    const bU = items.filter(a => state.achievementsUnlocked[a.id]).length;
-    html += `<div style="margin-bottom: 24px;"><div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.06);"><div style="width: 8px; height: 8px; border-radius: 50%; background: ${meta.color}; box-shadow: 0 0 8px ${meta.glow};"></div><div style="font-size: 12px; letter-spacing: 0.2em; color: ${meta.color}; text-transform: uppercase; font-weight: 700; flex: 1;">${meta.name}</div><div style="font-size: 10px; color: #6a5a8a;">${bU}/${items.length}</div></div><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">`;
-    items.forEach(a => {
-      const isU = !!state.achievementsUnlocked[a.id];
-      const c = a.color || meta.color;
-      html += `<button onclick="window.__app.openAch('${a.id}')" style="background: ${isU ? `linear-gradient(135deg, ${c}25, ${c}08)` : 'rgba(255,255,255,0.02)'}; border: 1px solid ${isU ? `${c}60` : 'rgba(255,255,255,0.05)'}; border-radius: 10px; padding: 12px 10px; cursor: pointer; text-align: center; opacity: ${isU ? 1 : 0.5};"><div style="font-size: 22px; margin-bottom: 6px; filter: ${isU ? `drop-shadow(0 0 8px ${c})` : 'grayscale(1)'};">${isU ? a.icon : '🔒'}</div><div style="font-size: 11px; color: ${isU ? '#fff' : '#5a4a78'}; font-weight: 600; line-height: 1.2; margin-bottom: 2px;">${escapeHtml(a.name)}</div><div style="font-size: 9px; color: ${isU ? c : '#5a4a78'}; line-height: 1.3;">Tier ${a.tier}</div></button>`;
-    });
-    html += '</div></div>';
+
+  let html = `<div style="text-align: center; margin-bottom: 20px;">
+    <div style="font-size: 10px; letter-spacing: 0.3em; color: #A78BFA; text-transform: uppercase; font-weight: 700;">Путь достижений</div>
+    <p style="font-size: 13px; color: #8870a8; margin: 6px 0 0;">${unlocked} из ${total} получено</p>
+  </div>`;
+
+  // Линейная цепочка по сложности — каждая следующая ачивка идёт строго после предыдущей
+  ACHIEVEMENTS.forEach((a, i) => {
+    const isU = !!state.achievementsUnlocked[a.id];
+    const isNext = !isU && (i === 0 || !!state.achievementsUnlocked[ACHIEVEMENTS[i-1]?.id]);
+
+    // Коннектор между шагами
+    if (i > 0) {
+      const prevDone = !!state.achievementsUnlocked[ACHIEVEMENTS[i-1]?.id];
+      html += `<div style="width:2px;height:14px;background:${prevDone?'linear-gradient(180deg,#A78BFA,#FF4DD8)':'rgba(255,255,255,0.08)'};margin:0 0 0 31px;"></div>`;
+    }
+
+    // Состояния иконок: открыто (мощное свечение), следующее (мягкое), закрыто (серое)
+
+    html += `<button onclick="window.__app.openAch('${a.id}')" style="
+      display: flex; align-items: center; gap: 14px;
+      width: 100%; padding: 12px 14px;
+      background: ${isU ? 'linear-gradient(135deg,rgba(167,139,250,0.12),rgba(255,77,216,0.05))' : 'rgba(255,255,255,0.025)'};
+      border: 1px solid ${isU ? 'rgba(167,139,250,0.4)' : isNext ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)'};
+      border-radius: 12px; cursor: pointer; text-align: left;
+    ">
+      <div style="
+        width: 44px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 28px;
+        color: ${isU ? '#A78BFA' : isNext ? 'rgba(167,139,250,0.6)' : '#3a2a58'};
+        text-shadow: ${isU ? '0 0 12px rgba(167,139,250,0.7)' : isNext ? '0 0 6px rgba(167,139,250,0.3)' : 'none'};
+      ">${isU || isNext ? a.icon : '🔒'}</div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 14px; color: ${isU ? '#fff' : isNext ? '#b0a0d0' : '#5a4a78'}; font-weight: 700; margin-bottom: 2px;">${a.name}</div>
+        <div style="font-size: 11px; color: ${isU ? '#A78BFA' : isNext ? '#6a5a8a' : '#3a2a58'}; line-height: 1.3;">${a.desc}</div>
+        ${isU && state.achievementsUnlocked[a.id] ? `<div style="font-size: 10px; color: #10E891; margin-top: 3px;">✓ ${formatDateRelative(state.achievementsUnlocked[a.id])}</div>` : ''}
+      </div>
+      ${isU ? `<div style="font-size: 18px; color: #A78BFA; flex-shrink: 0;">✓</div>` : isNext ? `<div style="font-size: 10px; color: #A78BFA; flex-shrink: 0; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 700;">→</div>` : ''}
+    </button>`;
   });
+
   return html;
 }
 
@@ -2224,14 +3583,34 @@ function renderHistory() {
     const items = grouped[date];
     const totalDayXP = items.reduce((s, h) => s + h.xp, 0);
     const totalDayHours = items.reduce((s, h) => s + (h.hours || 0), 0);
-    html += `<div style="margin-bottom: 18px;"><div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;"><div><div style="font-size: 13px; color: #fff; font-weight: 600;">${formatDateLong(date)}</div><div style="font-size: 10px; color: #8870a8; margin-top: 2px;">${formatDateRelative(date)} · ${WEEKDAYS_SHORT[weekdayMon(parseISO(date))]}</div></div><div style="text-align: right;"><div style="font-size: 13px; color: #A78BFA; font-weight: 700;">+${totalDayXP} XP</div>${totalDayHours > 0 ? `<div style="font-size: 10px; color: #00E5FF;">${totalDayHours.toFixed(1)} ч</div>` : ''}</div></div>`;
-    items.forEach(h => {
-      const sphere = SPHERES.find(s => s.id === h.sphere);
-      const isC = view.confirmUndoId === h.id;
-      const hL = h.hours ? ` · ${h.hours}ч` : '';
-      html += `<div style="padding: 11px 13px; background: ${isC ? 'rgba(255,61,113,0.1)' : 'rgba(255,255,255,0.03)'}; border-left: 3px solid ${isC ? '#FF3D71' : sphere.color}; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; gap: 10px;"><div style="flex: 1; min-width: 0;"><div style="font-size: 13px; color: #fff; word-break: break-word;">${escapeHtml(h.title)}</div><div style="font-size: 9px; color: ${sphere.color}; letter-spacing: 0.15em; text-transform: uppercase; margin-top: 3px; font-weight: 600;">${sphere.name}${hL}</div></div><div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;"><div style="font-size: 13px; color: ${isC ? '#FF3D71' : '#A78BFA'}; font-weight: 700; ${isC ? 'text-decoration: line-through;' : ''}">${isC ? '−' : '+'}${h.xp}</div><button onclick="window.__app.undo('${h.id}')" style="width: 24px; height: 24px; background: ${isC ? '#FF3D71' : 'transparent'}; border: 1px solid ${isC ? '#FF3D71' : 'rgba(255,255,255,0.15)'}; border-radius: 50%; color: ${isC ? '#fff' : '#8870a8'}; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; font-size: 11px;">${isC ? '✓' : '✕'}</button></div></div>`;
-    });
-    html += '</div>';
+    const dayGroupKey = 'history_day_' + date;
+    const isDayOpen = view.expandedGroups && view.expandedGroups[dayGroupKey];
+
+    // Заголовок дня — кнопка
+    html += `<div style="margin-bottom: 8px;">
+      <button onclick="window.__app.toggleGroup('${dayGroupKey}')" style="width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; cursor: pointer; text-align: left;">
+        <div style="font-size: 14px; color: #A78BFA; flex-shrink: 0;">${isDayOpen ? '▾' : '▸'}</div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; color: #fff; font-weight: 600;">${formatDateLong(date)}</div>
+          <div style="font-size: 10px; color: #8870a8; margin-top: 2px;">${formatDateRelative(date)} · ${WEEKDAYS_SHORT[weekdayMon(parseISO(date))]} · ${items.length} ${plural(items.length, 'действие', 'действия', 'действий')}</div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0;">
+          <div style="font-size: 13px; color: #A78BFA; font-weight: 700;">+${totalDayXP} XP</div>
+          ${totalDayHours > 0 ? `<div style="font-size: 10px; color: #00E5FF;">${totalDayHours.toFixed(1)} ч</div>` : ''}
+        </div>
+      </button>`;
+
+    if (isDayOpen) {
+      html += `<div style="margin-top: 4px; padding-left: 6px;">`;
+      items.forEach(h => {
+        const sphere = SPHERES.find(s => s.id === h.sphere);
+        const isC = view.confirmUndoId === h.id;
+        const hL = h.hours ? ` · ${h.hours}ч` : '';
+        html += `<div style="padding: 11px 13px; background: ${isC ? 'rgba(255,61,113,0.1)' : 'rgba(255,255,255,0.03)'}; border-left: 3px solid ${isC ? '#FF3D71' : sphere.color}; border-radius: 8px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; gap: 10px;"><div style="flex: 1; min-width: 0;"><div style="font-size: 13px; color: #fff; word-break: break-word;">${escapeHtml(h.title)}</div><div style="font-size: 9px; color: ${sphere.color}; letter-spacing: 0.15em; text-transform: uppercase; margin-top: 3px; font-weight: 600;">${sphere.name}${hL}</div></div><div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;"><div style="font-size: 13px; color: ${isC ? '#FF3D71' : '#A78BFA'}; font-weight: 700; ${isC ? 'text-decoration: line-through;' : ''}">${isC ? '−' : '+'}${h.xp}</div><button onclick="window.__app.undo('${h.id}')" style="width: 24px; height: 24px; background: ${isC ? '#FF3D71' : 'transparent'}; border: 1px solid ${isC ? '#FF3D71' : 'rgba(255,255,255,0.15)'}; border-radius: 50%; color: ${isC ? '#fff' : '#8870a8'}; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; font-size: 11px;">${isC ? '✓' : '✕'}</button></div></div>`;
+      });
+      html += `</div>`;
+    }
+    html += `</div>`;
   });
 
   const lastBackupText = state.lastBackup ? `Последний бэкап: ${formatDateRelative(state.lastBackup)}` : 'Бэкапов ещё не было';
@@ -2510,17 +3889,101 @@ function renderSkillModal() {
 // === ПАНЕЛЬ ТЕЛА (только для сферы body) — замеры веса и обхватов ===
 function renderBodyPanel(sphere) {
   const s = sphere;
+  const nutritionOpen = !!view.expandedGroups?.['body_nutrition'];
+  const measuresOpen  = !!view.expandedGroups?.['body_measures'];
+
+  let html = '';
+
+  // Питание — выпадающий блок
+  html += `<button onclick="window.__app.toggleGroup('body_nutrition')" style="width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;background:${nutritionOpen?'rgba(255,61,113,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${nutritionOpen?'rgba(255,61,113,0.35)':'rgba(255,255,255,0.07)'};border-radius:${nutritionOpen?'12px 12px 0 0':'12px'};cursor:pointer;text-align:left;margin-bottom:${nutritionOpen?'0':'8px'}">
+    <span style="font-size:18px;">🥗</span>
+    <div style="flex:1;font-size:13px;color:#fff;font-weight:700;">Питание</div>
+    <span style="font-size:13px;color:#8870a8;">${nutritionOpen?'▾':'▸'}</span>
+  </button>`;
+  if (nutritionOpen) {
+    html += `<div style="padding:14px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.07);border-top:none;border-radius:0 0 12px 12px;margin-bottom:8px;">`;
+    html += renderNutritionTab(s);
+    html += `</div>`;
+  }
+
+  // Замеры — выпадающий блок
+  html += `<button onclick="window.__app.toggleGroup('body_measures')" style="width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;background:${measuresOpen?'rgba(255,61,113,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${measuresOpen?'rgba(255,61,113,0.35)':'rgba(255,255,255,0.07)'};border-radius:${measuresOpen?'12px 12px 0 0':'12px'};cursor:pointer;text-align:left;margin-bottom:${measuresOpen?'0':'8px'}">
+    <span style="font-size:18px;">📏</span>
+    <div style="flex:1;font-size:13px;color:#fff;font-weight:700;">Замеры</div>
+    <span style="font-size:13px;color:#8870a8;">${measuresOpen?'▾':'▸'}</span>
+  </button>`;
+  if (measuresOpen) {
+    html += `<div style="padding:14px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.07);border-top:none;border-radius:0 0 12px 12px;margin-bottom:8px;">`;
+    html += renderMeasuresTab(s);
+    html += `</div>`;
+  }
+
+  return html;
+}
+
+function renderNutritionTab(s) {
+  const NP = NUTRITION_PLAN;
+  let html = '';
+
+  // Заголовок и пометка
+  html += `<div style="padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;margin-bottom:12px;">
+    <div style="font-size:12px;color:#b0a0d0;line-height:1.5;">${escapeHtml(NP.note)}</div>
+  </div>`;
+
+  // Приёмы пищи
+  NP.meals.forEach((meal, i) => {
+    const isOpen = view.expandedGroups && view.expandedGroups['meal_' + i];
+    html += `<div style="margin-bottom:6px;">
+      <button onclick="window.__app.toggleGroup('meal_${i}')" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 13px;background:${isOpen?'rgba(255,61,113,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${isOpen?'rgba(255,61,113,0.35)':'rgba(255,255,255,0.07)'};border-radius:10px;cursor:pointer;text-align:left;">
+        <div style="font-size:22px;flex-shrink:0;">${meal.emoji}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;color:#fff;font-weight:700;">${escapeHtml(meal.name)}</div>
+          <div style="font-size:10px;color:#8870a8;margin-top:1px;">${escapeHtml(meal.time)} · ${escapeHtml(meal.kcal)}</div>
+        </div>
+        <div style="font-size:14px;color:${isOpen?'#FF3D71':'#8870a8'};">${isOpen?'▾':'▸'}</div>
+      </button>`;
+
+    if (isOpen) {
+      html += `<div style="padding:12px 14px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.06);border-top:none;border-radius:0 0 10px 10px;margin-top:-2px;">`;
+      // Продукты
+      meal.items.forEach(item => {
+        html += `<div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+          <span style="color:${s.color};font-size:12px;flex-shrink:0;">·</span>
+          <span style="font-size:13px;color:#e0d0ff;">${escapeHtml(item)}</span>
+        </div>`;
+      });
+      // Что содержит
+      html += `<div style="margin-top:10px;padding:8px 10px;background:rgba(167,139,250,0.07);border-radius:7px;">
+        <div style="font-size:9px;color:#A78BFA;letter-spacing:0.15em;text-transform:uppercase;font-weight:700;margin-bottom:4px;">Что даёт</div>
+        <div style="font-size:11px;color:#b0a0d0;line-height:1.5;">${escapeHtml(meal.contains)}</div>
+      </div>`;
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+  });
+
+  // Правила внизу
+  html += `<div style="margin-top:10px;">
+    <div style="font-size:10px;color:#8870a8;letter-spacing:0.2em;text-transform:uppercase;font-weight:700;margin-bottom:8px;">Главные правила</div>`;
+  NP.rules.forEach(r => {
+    html += `<div style="font-size:12px;color:#b0a0d0;padding:7px 10px;background:rgba(255,255,255,0.025);border-radius:7px;margin-bottom:4px;line-height:1.4;">${escapeHtml(r)}</div>`;
+  });
+  html += `</div>`;
+
+  return html;
+}
+
+function renderMeasuresTab(s) {
   const body = state.body || { height: null, measurements: [] };
   const measurements = [...(body.measurements || [])].sort((a, b) => b.date.localeCompare(a.date) || b.timestamp - a.timestamp);
+  let html = '';
 
-  let html = `<div style="background: linear-gradient(135deg, ${s.color}10, ${s.color}03); border: 1px solid ${s.color}30; border-radius: 14px; padding: 16px; margin-bottom: 18px;">`;
-
-  html += `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+  html += `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
     <div style="font-size: 11px; letter-spacing: 0.25em; color: ${s.color}; text-transform: uppercase; font-weight: 700;">Замеры тела</div>
     <div style="font-size: 10px; color: #8870a8;">${measurements.length} ${plural(measurements.length, 'замер', 'замера', 'замеров')}</div>
   </div>`;
 
-  // Рост (заполняется один раз)
   if (!body.height || view.bodyEditingHeight) {
     html += `<div style="background: rgba(0,0,0,0.25); border: 1px solid ${s.color}40; border-radius: 10px; padding: 11px; margin-bottom: 10px;">
       <div style="font-size: 10px; color: #8870a8; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; font-weight: 600;">${body.height ? 'Изменить рост' : 'Сначала укажи рост'}</div>
@@ -2538,14 +4001,12 @@ function renderBodyPanel(sphere) {
     </div>`;
   }
 
-  // Последний замер сводка
   if (measurements.length > 0) {
     const last = measurements[0];
     const prev = measurements[1];
     const wDiff = last.weight && prev?.weight ? (last.weight - prev.weight).toFixed(1) : null;
     const wColor = wDiff === null ? '#8870a8' : (parseFloat(wDiff) > 0 ? '#FFAA00' : parseFloat(wDiff) < 0 ? '#10E891' : '#8870a8');
     const wSign = wDiff && parseFloat(wDiff) > 0 ? '+' : '';
-
     html += `<div style="background: rgba(0,0,0,0.25); border: 1px solid ${s.color}40; border-radius: 10px; padding: 12px; margin-bottom: 10px;">
       <div style="font-size: 10px; color: #8870a8; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">Последний замер · ${formatDateRelative(last.date)}</div>
       <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
@@ -2558,13 +4019,10 @@ function renderBodyPanel(sphere) {
     </div>`;
   }
 
-  // Форма добавления
   if (view.bodyAdding) {
     html += `<div style="background: rgba(0,0,0,0.3); border: 1px solid ${s.color}40; border-radius: 10px; padding: 12px; margin-bottom: 10px;">
       <div style="font-size: 10px; color: #8870a8; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; font-weight: 600;">Новый замер</div>
-      <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-        <input id="body-date-input" type="date" value="${today()}" style="flex: 1; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 12px; outline: none;" />
-      </div>
+      <div style="display: flex; gap: 6px; margin-bottom: 8px;"><input id="body-date-input" type="date" value="${today()}" style="flex: 1; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 12px; outline: none;" /></div>
       <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 8px;">
         <div><div style="font-size: 9px; color: #8870a8; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px;">Вес (кг)</div><input id="body-weight-input" type="number" step="0.1" placeholder="—" style="width: 100%; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 14px; outline: none; text-align: center; font-weight: 700;" /></div>
         <div><div style="font-size: 9px; color: #8870a8; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px;">Грудь (см)</div><input id="body-chest-input" type="number" step="0.5" placeholder="—" style="width: 100%; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 14px; outline: none; text-align: center;" /></div>
@@ -2572,28 +4030,24 @@ function renderBodyPanel(sphere) {
         <div><div style="font-size: 9px; color: #8870a8; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px;">Бёдра (см)</div><input id="body-hips-input" type="number" step="0.5" placeholder="—" style="width: 100%; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 14px; outline: none; text-align: center;" /></div>
         <div style="grid-column: span 2;"><div style="font-size: 9px; color: #8870a8; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px;">Бицепс (см)</div><input id="body-biceps-input" type="number" step="0.5" placeholder="—" style="width: 100%; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 14px; outline: none; text-align: center;" /></div>
       </div>
-      <input id="body-note-input" placeholder="Заметка (необязательно)" style="width: 100%; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 12px; outline: none; margin-bottom: 10px;" />
+      <input id="body-note-input" placeholder="Заметка" style="width: 100%; padding: 9px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 12px; outline: none; margin-bottom: 10px;" />
       <div style="display: flex; gap: 6px;">
         <button onclick="window.__app.bodyConfirm()" style="flex: 1; padding: 10px; background: linear-gradient(135deg,${s.color},${s.color}cc); color: #000; border: none; border-radius: 6px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-weight: 700;">Записать</button>
         <button onclick="window.__app.bodyCancelAdd()" style="padding: 10px 14px; background: transparent; color: #8870a8; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 11px; cursor: pointer;">Отмена</button>
       </div>
     </div>`;
-    setTimeout(() => document.getElementById('body-weight-input')?.focus(), 50);
   } else if (body.height) {
     html += `<button onclick="window.__app.bodyStartAdd()" style="width: 100%; padding: 10px; background: ${s.color}15; border: 1px dashed ${s.color}; border-radius: 8px; color: ${s.color}; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; margin-bottom: 10px; font-weight: 700;">+ Замер</button>`;
   }
 
-  // График веса (если есть 2+ замеров с весом)
-  const withWeight = measurements.filter(m => m.weight).reverse(); // в хронологическом порядке
+  const withWeight = measurements.filter(m => m.weight).reverse();
   if (withWeight.length >= 2) {
     const weights = withWeight.map(m => m.weight);
-    const minW = Math.min(...weights);
-    const maxW = Math.max(...weights);
+    const minW = Math.min(...weights), maxW = Math.max(...weights);
     const range = maxW - minW || 1;
     const w = 320, h = 80, pad = 4;
-    const stepX = withWeight.length > 1 ? (w - pad * 2) / (withWeight.length - 1) : 0;
-    let path = '';
-    let dots = '';
+    const stepX = (w - pad * 2) / (withWeight.length - 1);
+    let path = '', dots = '';
     withWeight.forEach((m, i) => {
       const x = pad + i * stepX;
       const y = pad + (h - pad * 2) * (1 - (m.weight - minW) / range);
@@ -2601,7 +4055,7 @@ function renderBodyPanel(sphere) {
       dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5" fill="${s.color}" />`;
     });
     html += `<div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 11px; margin-bottom: 8px;">
-      <div style="display: flex; justify-content: space-between; font-size: 10px; color: #8870a8; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px;"><span>Вес · график</span><span>${minW}–${maxW} кг</span></div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px; color: #8870a8; margin-bottom: 6px;"><span>Вес · график</span><span>${minW}–${maxW} кг</span></div>
       <svg viewBox="0 0 ${w} ${h}" style="width: 100%; height: ${h}px; display: block;">
         <path d="${path}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
         ${dots}
@@ -2609,12 +4063,11 @@ function renderBodyPanel(sphere) {
     </div>`;
   }
 
-  // История замеров (компактно)
   if (measurements.length > 0) {
-    html += `<div style="font-size: 10px; color: #8870a8; letter-spacing: 0.15em; text-transform: uppercase; margin: 14px 0 8px; font-weight: 600;">История</div>`;
+    html += `<div style="font-size: 10px; color: #8870a8; letter-spacing: 0.15em; text-transform: uppercase; margin: 10px 0 6px; font-weight: 600;">История</div>`;
     measurements.slice(0, 12).forEach(m => {
       const parts = [];
-      if (m.weight) parts.push(`<span style="color:#fff; font-weight:700;">${m.weight} кг</span>`);
+      if (m.weight) parts.push(`<span style="color:#fff;font-weight:700;">${m.weight} кг</span>`);
       if (m.chest) parts.push(`гр ${m.chest}`);
       if (m.waist) parts.push(`т ${m.waist}`);
       if (m.hips) parts.push(`бд ${m.hips}`);
@@ -2627,9 +4080,9 @@ function renderBodyPanel(sphere) {
     });
   }
 
-  html += `</div>`;
   return html;
 }
+
 
 function renderFinancePanel(sphere) {
   const s = sphere;
@@ -2647,11 +4100,8 @@ function renderFinancePanel(sphere) {
 
   let html = `<div style="background: linear-gradient(135deg, ${s.color}10, ${s.color}03); border: 1px solid ${s.color}30; border-radius: 14px; padding: 16px; margin-bottom: 18px;">`;
 
-  // Заголовок и переключатель валют
-  html += `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
-    <div style="font-size: 11px; letter-spacing: 0.25em; color: ${s.color}; text-transform: uppercase; font-weight: 700;">PnL · Учёт денег</div>
-    <div style="display: flex; gap: 4px;">${FIN_CURRENCIES.map(c => `<button onclick="window.__app.setCurrency('${c.id}')" style="padding: 4px 8px; background: ${state.finance.currency === c.id ? s.color : 'transparent'}; color: ${state.finance.currency === c.id ? '#000' : '#8870a8'}; border: 1px solid ${state.finance.currency === c.id ? s.color : 'rgba(255,255,255,0.08)'}; border-radius: 6px; font-size: 9px; font-weight: 700; cursor: pointer; letter-spacing: 0.05em;">${c.id}</button>`).join('')}</div>
-  </div>`;
+  // Заголовок
+  html += `<div style="font-size: 11px; letter-spacing: 0.25em; color: ${s.color}; text-transform: uppercase; font-weight: 700; margin-bottom: 14px;">PnL · Учёт денег</div>`;
 
   // Селектор месяца
   html += `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding: 8px 10px; background: rgba(0,0,0,0.25); border-radius: 10px;">
@@ -2679,13 +4129,40 @@ function renderFinancePanel(sphere) {
     </div>
   </div>`;
 
-  // Большая цифра накоплений
-  html += `<div style="background: linear-gradient(135deg, rgba(16,232,145,0.15), rgba(167,139,250,0.08)); border: 1px solid rgba(16,232,145,0.3); border-radius: 12px; padding: 14px; margin-bottom: 14px; text-align: center;">
-    <div style="font-size: 9px; color: #10E891; letter-spacing: 0.25em; text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">◈ Всего накоплено</div>
-    <div style="font-size: 26px; color: #fff; font-weight: 800; line-height: 1; margin-bottom: 4px;">${fmtMoney(savings)}</div>
-    <div style="font-size: 10px; color: #8870a8; margin-top: 6px;">подушка ${fmtMoney(state.finance.cushion || 0)} + чистое за все месяцы</div>
-    <button onclick="window.__app.toggleCushion()" style="margin-top: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #b0a0d0; cursor: pointer; padding: 5px 12px; border-radius: 8px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;">${view.finEditCushion ? 'Скрыть' : 'Изменить подушку'}</button>
+  // Большая цифра накоплений — в выбранных валютах
+  const selectedCurs = (state.finance.selectedCurrencies || ['USD']);
+  const rates = window.__fxRates?.rates || { USD:1, RUB:92, CLP:940, EUR:0.92 };
+  const savingsUSD = savings; // savings уже в USD (через amountUSD)
+
+  html += `<div style="background: linear-gradient(135deg, rgba(16,232,145,0.15), rgba(167,139,250,0.08)); border: 1px solid rgba(16,232,145,0.3); border-radius: 12px; padding: 14px; margin-bottom: 10px; text-align: center;">
+    <div style="font-size: 9px; color: #10E891; letter-spacing: 0.25em; text-transform: uppercase; font-weight: 700; margin-bottom: 8px;">◈ Всего накоплено</div>
+    ${selectedCurs.map((cur, i) => {
+      const val = savingsUSD * (rates[cur] || 1);
+      const fmt = cur === 'CLP' ? Math.round(val).toLocaleString('ru') : val.toFixed(2);
+      return `<div style="font-size:${i===0?'28px':'16px'};color:${i===0?'#fff':'#8870a8'};font-weight:${i===0?'800':'600'};line-height:1.3;">${fmt} <span style="font-size:${i===0?'14px':'11px'};color:#6a5a8a;">${cur}</span></div>`;
+    }).join('')}
+    <div style="font-size: 10px; color: #6a5a8a; margin-top: 6px;">подушка ${fmtMoney(state.finance.cushion || 0)} + история</div>
+    <button onclick="window.__app.toggleCushion()" style="margin-top: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #b0a0d0; cursor: pointer; padding: 5px 12px; border-radius: 8px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;">${view.finEditCushion ? 'Скрыть' : 'Изменить подушку'}</button>
   </div>`;
+
+  // Выбор валют (до 3)
+  const ALL_CURS = ['USD','RUB','CLP','EUR','GBP','CNY','AED','KZT','BRL'];
+  const curPickOpen = !!view.expandedGroups?.['fin_cur_pick'];
+  html += `<button onclick="window.__app.toggleGroup('fin_cur_pick')" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;cursor:pointer;text-align:left;margin-bottom:${curPickOpen?'0':'10px'}">
+    <span style="font-size:11px;color:#8870a8;flex:1;">Валюты для накоплений: ${selectedCurs.join(' · ')}</span>
+    <span style="font-size:12px;color:#6a5a8a;">${curPickOpen?'▾':'▸'}</span>
+  </button>`;
+  if (curPickOpen) {
+    html += `<div style="padding:10px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.07);border-top:none;border-radius:0 0 8px 8px;margin-bottom:10px;">
+      <div style="font-size:10px;color:#6a5a8a;margin-bottom:8px;">Выбери до 3 валют. Первая — основная (самая большая цифра).</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;">
+        ${ALL_CURS.map(cur => {
+          const isActive = selectedCurs.includes(cur);
+          return `<button onclick="window.__app.toggleFinCurrency('${cur}')" style="padding:6px 12px;background:${isActive?'rgba(16,232,145,0.2)':'transparent'};border:1px solid ${isActive?'#10E891':'rgba(255,255,255,0.12)'};border-radius:7px;color:${isActive?'#10E891':'#8870a8'};font-size:12px;font-weight:700;cursor:pointer;">${cur}${isActive?' ✓':''}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
 
   // Поле редактирования подушки
   if (view.finEditCushion) {
@@ -2711,8 +4188,17 @@ function renderFinancePanel(sphere) {
       </div>
       <div style="display: flex; gap: 8px; margin-bottom: 10px;">
         <div style="flex: 2;">
-          <div style="font-size: 9px; color: #8870a8; margin-bottom: 4px; letter-spacing: 0.1em; text-transform: uppercase;">Сумма</div>
-          <input id="fin-amount" type="number" step="0.01" min="0" placeholder="0" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 16px; outline: none; text-align: center; font-weight: 700;" />
+          <div style="font-size: 9px; color: #8870a8; margin-bottom: 4px; letter-spacing: 0.1em; text-transform: uppercase;">Сумма и валюта</div>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <input id="fin-amount" type="number" step="0.01" min="0" placeholder="0" oninput="updateFXDisplay()" style="flex:1;padding:10px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:18px;outline:none;text-align:center;font-weight:700;" />
+            <select id="fin-input-cur" onchange="window.__finInputCur=this.value;updateFXDisplay();" style="padding:10px 8px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:13px;font-weight:700;outline:none;cursor:pointer;">
+              ${['USD','RUB','CLP','EUR','GBP','CNY','AED','KZT','BRL'].map(c => `<option value="${c}" ${(window.__finInputCur||'USD')===c?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div style="font-size: 9px; color: #8870a8; margin-bottom: 4px; letter-spacing: 0.1em; text-transform: uppercase;">= в USD</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+            ${(state.finance.selectedCurrencies||['USD']).map(cur => `<div style="flex:1;min-width:60px;padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;text-align:center;"><div style="font-size:9px;color:#8870a8;text-transform:uppercase;">${cur}</div><div id="fx-${cur}" style="font-size:12px;color:#fff;font-weight:700;margin-top:1px;">—</div></div>`).join('')}
+          </div>
         </div>
         <div style="flex: 1;">
           <div style="font-size: 9px; color: #8870a8; margin-bottom: 4px; letter-spacing: 0.1em; text-transform: uppercase;">Дата</div>
@@ -2730,7 +4216,12 @@ function renderFinancePanel(sphere) {
         <button onclick="window.__app.cancelFinAdd()" style="padding: 11px 16px; background: transparent; color: #8870a8; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-size: 11px; cursor: pointer;">Отмена</button>
       </div>
     </div>`;
-    setTimeout(() => document.getElementById('fin-amount')?.focus(), 50);
+    setTimeout(() => {
+      document.getElementById('fin-amount')?.focus();
+      window.__finInputCur = state.finance?.currency || 'USD';
+      // Загружаем актуальные курсы (всегда от USD)
+      fetchFXRates();
+    }, 50);
   } else {
     html += `<div style="display: flex; gap: 8px; margin-bottom: 14px;">
       <button onclick="window.__app.startFinAdd('income')" style="flex: 1; padding: 11px; background: rgba(16,232,145,0.1); border: 1px dashed #10E891; color: #10E891; border-radius: 10px; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; font-weight: 700;">+ Доход</button>
@@ -2738,114 +4229,182 @@ function renderFinancePanel(sphere) {
     </div>`;
   }
 
-  // Список записей за выбранный месяц
+  // Список записей — группировка по дням
   if (entries.length === 0) {
-    html += `<div style="text-align: center; padding: 20px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.08); border-radius: 10px; font-size: 12px; color: #6a5a8a;">В этом месяце пока ничего</div>`;
+    html += `<div style="text-align:center;padding:20px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08);border-radius:10px;font-size:12px;color:#6a5a8a;">В этом месяце пока ничего</div>`;
   } else {
-    // Группируем по категориям для расходов
-    const grouped = { income: {}, expense: {} };
+    // Группируем по дате
+    const byDay = {};
     entries.forEach(e => {
-      if (!grouped[e.type][e.category]) grouped[e.type][e.category] = [];
-      grouped[e.type][e.category].push(e);
+      if (!byDay[e.date]) byDay[e.date] = [];
+      byDay[e.date].push(e);
+    });
+    const sortedDays = Object.keys(byDay).sort((a, b) => b.localeCompare(a));
+
+    sortedDays.forEach(date => {
+      const dayEntries = byDay[date];
+      const dayIncome  = dayEntries.filter(e=>e.type==='income') .reduce((s,e)=>s+(e.amountUSD||e.amount||0),0);
+      const dayExpense = dayEntries.filter(e=>e.type==='expense').reduce((s,e)=>s+(e.amountUSD||e.amount||0),0);
+      const dayNet = dayIncome - dayExpense;
+      const isOpen = !!view.expandedGroups?.['fin_day_' + date];
+
+      html += `<div style="margin-bottom:5px;">
+        <button onclick="window.__app.toggleGroup('fin_day_${date}')" style="width:100%;display:flex;align-items:center;gap:10px;padding:10px 13px;background:${isOpen?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.025)'};border:1px solid rgba(255,255,255,0.07);border-radius:${isOpen?'10px 10px 0 0':'10px'};cursor:pointer;text-align:left;">
+          <div style="flex:1;">
+            <div style="font-size:13px;color:#fff;font-weight:600;">${formatDateShort(date)}</div>
+            <div style="font-size:10px;color:#6a5a8a;margin-top:1px;">${dayEntries.length} ${plural(dayEntries.length,'запись','записи','записей')}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            ${dayIncome  > 0 ? `<div style="font-size:11px;color:#10E891;font-weight:700;">+$${dayIncome.toFixed(0)}</div>`  : ''}
+            ${dayExpense > 0 ? `<div style="font-size:11px;color:#FF3D71;font-weight:700;">−$${dayExpense.toFixed(0)}</div>` : ''}
+          </div>
+          <div style="font-size:12px;color:#6a5a8a;flex-shrink:0;">${isOpen?'▾':'▸'}</div>
+        </button>`;
+
+      if (isOpen) {
+        html += `<div style="background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.07);border-top:none;border-radius:0 0 10px 10px;padding:6px 8px;">`;
+        dayEntries.forEach(e => {
+          const cat = findFinCategory(e.type, e.category);
+          const isIncome = e.type === 'income';
+          const col = isIncome ? '#10E891' : '#FF3D71';
+          const sign = isIncome ? '+' : '−';
+          const amtUSD = e.amountUSD || e.amount || 0;
+          // Показываем оригинальную сумму если была в другой валюте
+          const origStr = (e.currency && e.currency !== 'USD')
+            ? ` (${e.amount} ${e.currency})`
+            : '';
+          html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.04);">
+            <span style="font-size:16px;flex-shrink:0;">${cat.icon}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;color:#fff;font-weight:600;">${escapeHtml(cat.name)}</div>
+              ${e.note ? `<div style="font-size:10px;color:#8870a8;">${escapeHtml(e.note)}</div>` : ''}
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="font-size:13px;color:${col};font-weight:700;">${sign}$${amtUSD.toFixed(0)}</div>
+              ${origStr ? `<div style="font-size:9px;color:#6a5a8a;">${origStr}</div>` : ''}
+            </div>
+            <button onclick="window.__app.removeFinEntry('${e.id}')" style="background:rgba(255,61,113,0.1);border:1px solid rgba(255,61,113,0.3);color:#FF3D71;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:12px;flex-shrink:0;">✕</button>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      html += `</div>`;
+    });
+  }
+
+  // Круговая диаграмма расходов по категориям
+  const chartPeriod = view.finChartPeriod || 'month';
+  const chartMonth = view.finChartMonth || currentMonth();
+  const now2 = new Date();
+
+  let chartEntries = [];
+  if (chartPeriod === 'month') {
+    chartEntries = finEntriesForMonth(chartMonth).filter(e => e.type === 'expense');
+  } else if (chartPeriod === 'half') {
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now2.getFullYear(), now2.getMonth() - i, 1);
+      const ms = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      chartEntries.push(...finEntriesForMonth(ms).filter(e => e.type === 'expense'));
+    }
+  } else {
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now2.getFullYear(), now2.getMonth() - i, 1);
+      const ms = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      chartEntries.push(...finEntriesForMonth(ms).filter(e => e.type === 'expense'));
+    }
+  }
+
+  const catTotals = {};
+  chartEntries.forEach(e => {
+    const amt = e.amountUSD || e.amount || 0;
+    catTotals[e.category] = (catTotals[e.category] || 0) + amt;
+  });
+  const totalExp = Object.values(catTotals).reduce((s,v) => s+v, 0);
+
+  const [cyr, cmo] = chartMonth.split('-').map(Number);
+  const chartMonthLabel = MONTHS_RU[cmo-1] + ' ' + cyr;
+
+  // Кнопки периода
+  const periodBtns = [['month','Месяц'],['half','6 мес'],['year','Год']].map(([id,label]) =>
+    '<button onclick="window.__app.setFinChartPeriod(\'' + id + '\')" style="padding:4px 9px;background:' + (chartPeriod===id?'#A78BFA':'transparent') + ';border:1px solid ' + (chartPeriod===id?'#A78BFA':'rgba(255,255,255,0.12)') + ';border-radius:6px;color:' + (chartPeriod===id?'#000':'#8870a8') + ';font-size:10px;font-weight:700;cursor:pointer;">' + label + '</button>'
+  ).join('');
+
+  // Селектор месяца (только в режиме month)
+  const monthPicker = chartPeriod === 'month'
+    ? '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;">'
+      + '<button onclick="window.__app.shiftChartMonth(-1)" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#b0a0d0;cursor:pointer;width:28px;height:28px;border-radius:7px;font-size:14px;">&#8249;</button>'
+      + '<div style="font-size:13px;color:#fff;font-weight:700;">' + chartMonthLabel + '</div>'
+      + '<button onclick="window.__app.shiftChartMonth(1)" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#b0a0d0;cursor:pointer;width:28px;height:28px;border-radius:7px;font-size:14px;">&#8250;</button>'
+      + '</div>'
+    : '';
+
+  html += '<div style="margin-top:16px;padding:14px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.05);border-radius:12px;">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+    + '<div style="font-size:10px;color:#A78BFA;letter-spacing:0.2em;text-transform:uppercase;font-weight:700;">Расходы</div>'
+    + '<div style="display:flex;gap:4px;">' + periodBtns + '</div>'
+    + '</div>'
+    + monthPicker;
+
+  if (totalExp === 0) {
+    html += '<div style="text-align:center;padding:20px;font-size:12px;color:#6a5a8a;">Расходов за этот период нет</div>';
+  } else {
+    const sorted = Object.entries(catTotals).sort((a,b) => b[1]-a[1]);
+    const PIE_COLORS = ['#FF3D71','#FFAA00','#00E5FF','#A78BFA','#10E891','#FF4DD8','#FF6B35','#4ECDC4','#FFD700','#B8F2E6'];
+    const cx = 80, cy = 80, r = 65, rInner = 35;
+    const toRad = a => a * Math.PI / 180;
+    let startAngle = -90;
+    let paths = '';
+
+    sorted.forEach(([catId, amt], i) => {
+      const angle = (amt / totalExp) * 360;
+      const color = PIE_COLORS[i % PIE_COLORS.length];
+      const endAngle = startAngle + angle;
+      const x1  = cx + r      * Math.cos(toRad(startAngle));
+      const y1  = cy + r      * Math.sin(toRad(startAngle));
+      const x2  = cx + r      * Math.cos(toRad(endAngle));
+      const y2  = cy + r      * Math.sin(toRad(endAngle));
+      const xi1 = cx + rInner * Math.cos(toRad(startAngle));
+      const yi1 = cy + rInner * Math.sin(toRad(startAngle));
+      const xi2 = cx + rInner * Math.cos(toRad(endAngle));
+      const yi2 = cy + rInner * Math.sin(toRad(endAngle));
+      const large = angle > 180 ? 1 : 0;
+      paths += '<path d="M ' + xi1 + ' ' + yi1 + ' L ' + x1 + ' ' + y1
+        + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2
+        + ' L ' + xi2 + ' ' + yi2
+        + ' A ' + rInner + ' ' + rInner + ' 0 ' + large + ' 0 ' + xi1 + ' ' + yi1
+        + ' Z" fill="' + color + '" opacity="0.9" stroke="#0a0612" stroke-width="1.5"/>';
+      startAngle = endAngle;
     });
 
-    // Расходы
-    if (Object.keys(grouped.expense).length > 0) {
-      html += `<div style="margin-bottom: 14px;"><div style="font-size: 10px; color: #FF3D71; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; margin-bottom: 8px;">Расходы по категориям</div>`;
-      const sortedCats = Object.keys(grouped.expense).sort((a, b) => {
-        const sa = grouped.expense[a].reduce((s, e) => s + e.amount, 0);
-        const sb = grouped.expense[b].reduce((s, e) => s + e.amount, 0);
-        return sb - sa;
-      });
-      sortedCats.forEach(catId => {
-        const cat = findFinCategory('expense', catId);
-        const items = grouped.expense[catId];
-        const catSum = items.reduce((s, e) => s + e.amount, 0);
-        const pct = expenseSum > 0 ? (catSum / expenseSum * 100) : 0;
-        html += `<div style="background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; margin-bottom: 6px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;"><span style="color: ${cat.color}; font-size: 14px;">${cat.icon}</span><span style="font-size: 12px; color: #fff; font-weight: 600;">${escapeHtml(cat.name)}</span><span style="font-size: 10px; color: #6a5a8a;">${items.length}</span></div>
-            <div style="text-align: right; flex-shrink: 0;"><div style="font-size: 13px; color: #FF3D71; font-weight: 700;">${fmtMoney(catSum)}</div><div style="font-size: 9px; color: #8870a8;">${pct.toFixed(0)}%</div></div>
-          </div>
-          <div style="height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-bottom: 8px;"><div style="height: 100%; width: ${pct}%; background: ${cat.color};"></div></div>
-          ${items.map(e => `<div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px dashed rgba(255,255,255,0.04); gap: 8px;">
-            <div style="flex: 1; min-width: 0;"><div style="font-size: 11px; color: #b0a0d0;">${formatDateShort(e.date)}${e.note ? ` · ${escapeHtml(e.note)}` : ''}</div></div>
-            <div style="font-size: 12px; color: #FF3D71; font-weight: 600; flex-shrink: 0;">−${fmtMoney(e.amount).replace('−', '')}</div>
-            <button onclick="window.__app.removeFinEntry('${e.id}')" style="background: transparent; border: none; color: #5a4a78; cursor: pointer; padding: 2px; font-size: 12px; flex-shrink: 0;">✕</button>
-          </div>`).join('')}
-        </div>`;
-      });
-      html += '</div>';
-    }
+    const totalStr = totalExp < 1000 ? '$' + totalExp.toFixed(0) : '$' + (Math.round(totalExp/100)/10) + 'k';
 
-    // Доходы
-    if (Object.keys(grouped.income).length > 0) {
-      html += `<div style="margin-bottom: 8px;"><div style="font-size: 10px; color: #10E891; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; margin-bottom: 8px;">Доходы по категориям</div>`;
-      const sortedCats = Object.keys(grouped.income).sort((a, b) => {
-        const sa = grouped.income[a].reduce((s, e) => s + e.amount, 0);
-        const sb = grouped.income[b].reduce((s, e) => s + e.amount, 0);
-        return sb - sa;
-      });
-      sortedCats.forEach(catId => {
-        const cat = findFinCategory('income', catId);
-        const items = grouped.income[catId];
-        const catSum = items.reduce((s, e) => s + e.amount, 0);
-        html += `<div style="background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; margin-bottom: 6px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;"><span style="color: ${cat.color}; font-size: 14px;">${cat.icon}</span><span style="font-size: 12px; color: #fff; font-weight: 600;">${escapeHtml(cat.name)}</span><span style="font-size: 10px; color: #6a5a8a;">${items.length}</span></div>
-            <div style="font-size: 13px; color: #10E891; font-weight: 700;">+${fmtMoney(catSum).replace('−', '')}</div>
-          </div>
-          ${items.map(e => `<div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px dashed rgba(255,255,255,0.04); gap: 8px;">
-            <div style="flex: 1; min-width: 0;"><div style="font-size: 11px; color: #b0a0d0;">${formatDateShort(e.date)}${e.note ? ` · ${escapeHtml(e.note)}` : ''}</div></div>
-            <div style="font-size: 12px; color: #10E891; font-weight: 600; flex-shrink: 0;">+${fmtMoney(e.amount).replace('−', '')}</div>
-            <button onclick="window.__app.removeFinEntry('${e.id}')" style="background: transparent; border: none; color: #5a4a78; cursor: pointer; padding: 2px; font-size: 12px; flex-shrink: 0;">✕</button>
-          </div>`).join('')}
-        </div>`;
-      });
-      html += '</div>';
-    }
+    let legend = '';
+    sorted.forEach(([catId, amt], i) => {
+      const cat = findFinCategory('expense', catId);
+      const pct = (amt / totalExp * 100).toFixed(0);
+      const color = PIE_COLORS[i % PIE_COLORS.length];
+      legend += '<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;">'
+        + '<div style="width:10px;height:10px;border-radius:3px;background:' + color + ';flex-shrink:0;"></div>'
+        + '<div style="flex:1;min-width:0;font-size:11px;color:#fff;font-weight:600;">' + escapeHtml(cat.name) + '</div>'
+        + '<div style="text-align:right;flex-shrink:0;">'
+        + '<div style="font-size:11px;color:' + color + ';font-weight:700;">$' + amt.toFixed(0) + '</div>'
+        + '<div style="font-size:9px;color:#6a5a8a;">' + pct + '%</div>'
+        + '</div></div>';
+    });
+
+    html += '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">'
+      + '<svg width="160" height="160" viewBox="0 0 160 160" style="flex-shrink:0;">'
+      + paths
+      + '<circle cx="' + cx + '" cy="' + cy + '" r="' + (rInner-2) + '" fill="#0a0612"/>'
+      + '<text x="' + cx + '" y="' + (cy-6) + '" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold" font-family="-apple-system,sans-serif">' + totalStr + '</text>'
+      + '<text x="' + cx + '" y="' + (cy+10) + '" text-anchor="middle" fill="#6a5a8a" font-size="9" font-family="-apple-system,sans-serif">расходов</text>'
+      + '</svg>'
+      + '<div style="flex:1;min-width:0;">' + legend + '</div>'
+      + '</div>';
   }
 
-  // График динамики последних 6 месяцев
-  const last6 = [];
-  const now = new Date();
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const ms = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    last6.push({ ms, label: MONTHS_RU_SHORT[d.getMonth()] });
-  }
-  let maxBar = 0;
-  last6.forEach(m => {
-    maxBar = Math.max(maxBar, finMonthSum(m.ms, 'income'), finMonthSum(m.ms, 'expense'));
-  });
-  if (maxBar === 0) maxBar = 1;
-
-  html += `<div style="margin-top: 16px; padding: 14px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;">
-    <div style="font-size: 10px; color: #A78BFA; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; margin-bottom: 12px;">Последние 6 месяцев</div>
-    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; align-items: flex-end; height: 120px;">
-      ${last6.map(m => {
-        const inc = finMonthSum(m.ms, 'income');
-        const exp = finMonthSum(m.ms, 'expense');
-        const n = inc - exp;
-        const incH = (inc / maxBar) * 100;
-        const expH = (exp / maxBar) * 100;
-        return `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px; height: 100%; cursor: pointer;" onclick="window.__app.setFinMonth('${m.ms}')" title="${m.label}: +${fmtMoney(inc)} / −${fmtMoney(exp)} = ${fmtMoney(n)}">
-          <div style="display: flex; align-items: flex-end; gap: 2px; height: 100%; width: 100%; padding: 0 2px;">
-            <div style="flex: 1; height: ${incH}%; background: linear-gradient(180deg, #10E891, #10E89160); border-radius: 3px 3px 0 0; box-shadow: 0 0 4px rgba(16,232,145,0.4);"></div>
-            <div style="flex: 1; height: ${expH}%; background: linear-gradient(180deg, #FF3D71, #FF3D7160); border-radius: 3px 3px 0 0; box-shadow: 0 0 4px rgba(255,61,113,0.4);"></div>
-          </div>
-          <div style="font-size: 9px; color: ${m.ms === monthStr ? '#fff' : '#8870a8'}; text-transform: uppercase; letter-spacing: 0.05em; font-weight: ${m.ms === monthStr ? '700' : '500'};">${m.label}</div>
-          <div style="font-size: 8px; color: ${n >= 0 ? '#10E891' : '#FF3D71'}; font-weight: 700;">${n >= 0 ? '+' : ''}${Math.round(n)}</div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div style="display: flex; justify-content: center; gap: 12px; margin-top: 10px; font-size: 10px; color: #8870a8;">
-      <span><span style="display: inline-block; width: 8px; height: 8px; background: #10E891; border-radius: 2px; vertical-align: middle; margin-right: 4px;"></span>доходы</span>
-      <span><span style="display: inline-block; width: 8px; height: 8px; background: #FF3D71; border-radius: 2px; vertical-align: middle; margin-right: 4px;"></span>расходы</span>
-    </div>
-  </div>`;
-
-  html += `</div>`;
+  html += '</div>';
   return html;
 }
 
@@ -2886,9 +4445,7 @@ function renderSphereModal() {
       const mandatoryBadge = (t.mandatory && !opts.compact) ? `<span style="font-size: 8px; padding: 2px 6px; background: ${s.color}25; color: ${s.color}; border: 1px solid ${s.color}50; border-radius: 6px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; margin-left: 6px; vertical-align: middle;">★ обязат.</span>` : '';
       const bg = opts.compact ? 'rgba(255,255,255,0.02)' : (t.mandatory ? `linear-gradient(135deg, ${s.color}10, transparent)` : 'rgba(255,255,255,0.03)');
       const borderLeft = (t.mandatory && !opts.compact) ? `border-left: 3px solid ${s.color};` : '';
-      const deleteBtn = t.mandatory
-        ? `<div style="width: 24px; flex-shrink: 0;"></div>`
-        : `<button onclick="window.__app.removeTask('${s.id}', '${t.id}')" style="background: transparent; border: none; color: #5a4a78; cursor: pointer; padding: 4px; font-size: 14px;">🗑</button>`;
+      const deleteBtn = `<button onclick="window.__app.removeTask('${s.id}', '${t.id}')" style="background: transparent; border: none; color: #5a4a78; cursor: pointer; padding: 4px; font-size: 14px;">🗑</button>`;
       return `<div style="display: flex; align-items: center; gap: 10px; padding: ${opts.compact ? '9px' : '11px'}; background: ${bg}; border: 1px solid rgba(255,255,255,0.05); ${borderLeft} border-radius: 10px; margin-bottom: 5px;">
         <button onclick="window.__app.completeQuick('${s.id}', '${t.id}')" style="width: ${opts.compact ? '26px' : '28px'}; height: ${opts.compact ? '26px' : '28px'}; border-radius: 50%; background: transparent; border: 2px solid ${s.color}; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; box-shadow: 0 0 8px ${s.glow};"><span style="color: ${s.color}; font-size: 13px; font-weight: 700;">✓</span></button>
         <div style="flex: 1; min-width: 0;">
@@ -2951,10 +4508,6 @@ function renderSphereModal() {
   }
 
   let contextHtml = '';
-  if (hasContext) {
-    const visible = view.contextVisible ? QUESTIONS[s.id].map(q => { const v = ctx[q.id]; if (!v || !v.trim()) return ''; return `<div style="margin-bottom: 10px;"><div style="font-size: 10px; color: #8870a8; margin-bottom: 3px; letter-spacing: 0.05em;">${escapeHtml(q.label)}</div><div style="font-size: 12px; color: #d0c0e8; line-height: 1.5;">${escapeHtml(v)}</div></div>`; }).join('') : '';
-    contextHtml = `<div style="margin-bottom: 14px;"><button onclick="window.__app.toggleContext()" style="width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #b0a0d0; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 600;"><span>Твой контекст</span><span>${view.contextVisible ? '▴' : '▾'}</span></button>${view.contextVisible ? `<div style="margin-top: 6px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px;">${visible}</div>` : ''}</div>`;
-  }
 
   const financeHtml = s.id === 'money' ? renderFinancePanel(s) : '';
   const hasSkillsForSphere = (state.skills || []).some(sk => (sk.sphereId || 'skills') === s.id);
@@ -2987,7 +4540,7 @@ function renderSphereModal() {
     </div>`;
   }
 
-  return `<div onclick="window.__app.closeModal()" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 200; display: flex; align-items: flex-end; justify-content: center;"><div onclick="event.stopPropagation()" style="background: linear-gradient(180deg, #150a25, #0a0612); border-radius: 20px 20px 0 0; width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; padding: 20px; position: relative; border-top: 3px solid ${s.color}; box-shadow: 0 -10px 40px ${s.glow};"><button onclick="window.__app.closeModal()" style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #b0a0d0; cursor: pointer; padding: 0; width: 28px; height: 28px; border-radius: 50%; font-size: 16px;">✕</button><div style="display: flex; align-items: center; gap: 14px; margin: 8px 0 18px;"><div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, ${s.color}40, ${s.color}10); border: 1px solid ${s.color}; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 0 20px ${s.glow};">${s.emoji}</div><div><div style="font-size: 20px; color: #fff; font-weight: 700;">${s.name}</div><div style="font-size: 11px; color: ${s.color}; letter-spacing: 0.1em;">Уровень ${lvl} · ${sxp} XP${sh > 0 ? ` · ${sh.toFixed(1)} ч` : ''}</div></div></div>${stageProgressHtml}${contextHtml}${bodyHtml}${skillsHtml}${financeHtml}${addBlock}${tasksHtml}</div></div>`;
+  return `<div onclick="window.__app.closeModal()" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 200; display: flex; align-items: flex-end; justify-content: center;"><div onclick="event.stopPropagation()" style="background: linear-gradient(180deg, #150a25, #0a0612); border-radius: 20px 20px 0 0; width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; padding: 20px; position: relative; border-top: 3px solid ${s.color}; box-shadow: 0 -10px 40px ${s.glow};"><button onclick="window.__app.closeModal()" style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #b0a0d0; cursor: pointer; padding: 0; width: 28px; height: 28px; border-radius: 50%; font-size: 16px;">✕</button><div style="display: flex; align-items: center; gap: 14px; margin: 8px 0 18px;"><div style="font-size: 32px; color: ${s.color}; text-shadow: 0 0 12px ${s.glow};">${s.emoji}</div><div><div style="font-size: 20px; color: #fff; font-weight: 700;">${s.name}</div><div style="font-size: 11px; color: ${s.color}; letter-spacing: 0.1em;">Уровень ${lvl} · ${sxp} XP${sh > 0 ? ` · ${sh.toFixed(1)} ч` : ''}</div></div></div>${stageProgressHtml}${contextHtml}${bodyHtml}${skillsHtml}${financeHtml}${addBlock}${tasksHtml}</div></div>`;
 }
 
 function renderStageModal() {
@@ -3061,7 +4614,7 @@ function renderAchievementModal() {
   if (!a) return '';
   const isU = !!state.achievementsUnlocked[a.id];
   const c = a.color || '#A78BFA';
-  return `<div onclick="window.__app.closeModal()" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px;"><div onclick="event.stopPropagation()" style="background: linear-gradient(180deg, #150a25, #0a0612); border-radius: 20px; width: 100%; max-width: 360px; padding: 28px 24px; position: relative; border: 1px solid ${c}40; box-shadow: 0 0 40px ${c}40; text-align: center;"><button onclick="window.__app.closeModal()" style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #b0a0d0; cursor: pointer; padding: 0; width: 28px; height: 28px; border-radius: 50%; font-size: 16px;">✕</button><div style="font-size: 64px; margin-bottom: 14px; filter: ${isU ? `drop-shadow(0 0 16px ${c})` : 'grayscale(1) opacity(0.4)'};">${isU ? a.icon : '🔒'}</div><div style="font-size: 10px; letter-spacing: 0.3em; color: ${isU ? c : '#5a4a78'}; text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">Tier ${a.tier} · ${isU ? 'Открыто' : 'Закрыто'}</div><h2 style="font-size: 22px; margin: 0 0 10px; font-weight: 700; color: ${isU ? '#fff' : '#5a4a78'};">${escapeHtml(a.name)}</h2><p style="font-size: 14px; color: ${isU ? '#b0a0d0' : '#5a4a78'}; line-height: 1.5; margin: 0;">${escapeHtml(a.desc)}</p>${isU && state.achievementsUnlocked[a.id] ? `<div style="font-size: 11px; color: ${c}; margin-top: 16px; letter-spacing: 0.1em;">✓ ${formatDateLong(state.achievementsUnlocked[a.id])}</div>` : ''}</div></div>`;
+  return `<div onclick="window.__app.closeModal()" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px;"><div onclick="event.stopPropagation()" style="background: linear-gradient(180deg, #150a25, #0a0612); border-radius: 20px; width: 100%; max-width: 360px; padding: 28px 24px; position: relative; border: 1px solid ${c}40; box-shadow: 0 0 40px ${c}40; text-align: center;"><button onclick="window.__app.closeModal()" style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #b0a0d0; cursor: pointer; padding: 0; width: 28px; height: 28px; border-radius: 50%; font-size: 16px;">✕</button><div style="font-size: 72px; margin-bottom: 14px; color: ${isU ? c : '#3a2a58'}; text-shadow: ${isU ? `0 0 18px ${c}` : 'none'}; opacity: ${isU ? 1 : 0.4};">${isU ? a.icon : '🔒'}</div><div style="font-size: 10px; letter-spacing: 0.3em; color: ${isU ? c : '#5a4a78'}; text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">${isU ? 'Открыто' : 'Закрыто'}</div><h2 style="font-size: 22px; margin: 0 0 10px; font-weight: 700; color: ${isU ? '#fff' : '#5a4a78'};">${escapeHtml(a.name)}</h2><p style="font-size: 14px; color: ${isU ? '#b0a0d0' : '#5a4a78'}; line-height: 1.5; margin: 0;">${escapeHtml(a.desc)}</p>${isU && state.achievementsUnlocked[a.id] ? `<div style="font-size: 11px; color: ${c}; margin-top: 16px; letter-spacing: 0.1em;">✓ ${formatDateLong(state.achievementsUnlocked[a.id])}</div>` : ''}</div></div>`;
 }
 
 function addSkillSession(skillId, subId, hours, date, note) {
@@ -3124,6 +4677,27 @@ window.__app = {
   tab: t => { view.tab = t; render(); },
   openSphere: id => { view.sphereId = id; view.contextVisible = false; render(); },
   openStage: id => { view.stageId = id; render(); },
+  editGoal: (sphereId) => {
+    if (view.editingGoalSphere === sphereId) {
+      const el = document.getElementById('goal-edit-' + sphereId);
+      const dl = document.getElementById('goal-deadline-' + sphereId);
+      if (el) {
+        const val = el.value.trim();
+        const months = dl ? parseInt(dl.value) : 12;
+        if (!state.context) state.context = {};
+        if (!state.context[sphereId]) state.context[sphereId] = {};
+        state.context[sphereId].goal = val;
+        state.context[sphereId].deadline = months;
+        if (sphereId === 'skills') state.context[sphereId].wanted = val;
+        if (sphereId === 'career') state.context[sphereId].criteria = val;
+        save();
+      }
+      view.editingGoalSphere = null;
+    } else {
+      view.editingGoalSphere = sphereId;
+    }
+    render();
+  },
   openAch: id => { view.achId = id; render(); },
   closeModal: () => { view.sphereId = null; view.stageId = null; view.achId = null; view.addingTask = false; view.addMode = 'simple'; render(); },
   toggleContext: () => { view.contextVisible = !view.contextVisible; render(); },
@@ -3200,6 +4774,12 @@ window.__app = {
   },
   setFinMonth: ms => { view.finMonth = ms; render(); },
   setCurrency: c => setCurrency(c),
+  setFinInputCur: (cur) => {
+    window.__finInputCur = cur;
+    render();
+    // После перерисовки запускаем обновление цифр
+    setTimeout(() => updateFXDisplay(), 30);
+  },
   startFinAdd: type => { view.finView = 'add'; view.finAddType = type; window.__finSelectedCat = FIN_CATEGORIES[type][0].id; render(); },
   cancelFinAdd: () => { view.finView = 'overview'; render(); },
   setFinAddType: t => { view.finAddType = t; window.__finSelectedCat = FIN_CATEGORIES[t][0].id; render(); },
@@ -3221,19 +4801,40 @@ window.__app = {
   confirmFinEntry: () => {
     const amount = parseFloat(document.getElementById('fin-amount').value.replace(',', '.'));
     if (isNaN(amount) || amount <= 0) { alert('Введи сумму больше 0'); return; }
+    const currency = document.getElementById('fin-input-cur')?.value || window.__finInputCur || 'USD';
     const date = document.getElementById('fin-date').value || today();
     const note = document.getElementById('fin-note').value.trim();
     const category = window.__finSelectedCat || FIN_CATEGORIES[view.finAddType][0].id;
-    addFinEntry({ type: view.finAddType, category, amount, note, date });
+    addFinEntry({ type: view.finAddType, category, amount, currency, note, date });
     view.finView = 'overview';
     view.finMonth = date.slice(0, 7);
     render();
   },
   removeFinEntry: id => {
-    if (!confirm('Удалить запись?')) return;
     removeFinEntry(id);
   },
-  toggleCushion: () => { view.finEditCushion = !view.finEditCushion; render(); },
+  setFinChartPeriod: p => { view.finChartPeriod = p; render(); },
+  shiftChartMonth: (dir) => {
+    const ms = view.finChartMonth || currentMonth();
+    const [y, m] = ms.split('-').map(Number);
+    const d = new Date(y, m - 1 + dir, 1);
+    const newMs = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (newMs > currentMonth()) return; // не вперёд будущего
+    view.finChartMonth = newMs;
+    render();
+  },
+  toggleFinCurrency: (cur) => {
+    if (!state.finance.selectedCurrencies) state.finance.selectedCurrencies = ['USD'];
+    const list = state.finance.selectedCurrencies;
+    if (list.includes(cur)) {
+      if (list.length <= 1) return; // хотя бы 1 валюта
+      state.finance.selectedCurrencies = list.filter(c => c !== cur);
+    } else {
+      if (list.length >= 3) { showToast('Максимум 3 валюты', '#FFAA00'); return; }
+      state.finance.selectedCurrencies = [...list, cur];
+    }
+    save(); render();
+  },
   saveCushion: () => {
     const v = parseFloat(document.getElementById('fin-cushion-input').value.replace(',', '.'));
     if (isNaN(v) || v < 0) { alert('Введи число 0 или больше'); return; }
@@ -3532,7 +5133,9 @@ window.__app = {
       if (ta) ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
   },
-  // === ТЕЛО ===
+  // === ТЕЛО — вкладки и тренировки ===
+  setBodyTab: (tab) => { view.bodyTab = tab; render(); },
+  // === ТЕЛО — замеры ===
   bodyEditHeight: () => { view.bodyEditingHeight = true; render(); },
   bodyCancelHeight: () => { view.bodyEditingHeight = false; render(); },
   bodySaveHeight: () => {
@@ -3569,6 +5172,103 @@ window.__app = {
 };
 
 load();
+</script>
+
+<!-- ============== ПЕРЕКЛЮЧАТЕЛЬ ТЕМ ============== -->
+<div id="kp-theme-toggle">
+  <button class="kp-th-btn" onclick="window.kpToggleThemeMenu()" id="kp-theme-trigger">
+    <span class="dot" id="kp-theme-dot"></span>
+    <span id="kp-theme-name">Тема</span>
+    <span style="opacity: 0.6; font-size: 10px;">▾</span>
+  </button>
+  <div id="kp-theme-menu">
+    <button data-th="dark" onclick="window.kpSetTheme('dark')">
+      <span class="sw" style="background: linear-gradient(135deg,#0a0612,#150a25); border-color:#A78BFA;"></span>
+      <span class="meta"><b>Оригинал</b><span>тёмная неон</span></span>
+    </button>
+    <button data-th="creative" onclick="window.kpSetTheme('creative')">
+      <span class="sw" style="background: linear-gradient(135deg,#d97742,#2a1810); border-color:#f5e6d0;"></span>
+      <span class="meta"><b>Творческий</b><span>тёплая, ламповая</span></span>
+    </button>
+    <div id="kp-palette-row">
+      <button class="kp-pal" data-pal="vermillion" title="Vermillion · медь" aria-label="Vermillion" onclick="window.kpSetPalette('vermillion')"></button>
+      <button class="kp-pal" data-pal="sunset" title="Sunset · персик" aria-label="Sunset" onclick="window.kpSetPalette('sunset')"></button>
+      <button class="kp-pal" data-pal="aurora" title="Aurora · бирюза" aria-label="Aurora" onclick="window.kpSetPalette('aurora')"></button>
+      <button class="kp-pal" data-pal="lava" title="Lava · лава" aria-label="Lava" onclick="window.kpSetPalette('lava')"></button>
+      <button class="kp-pal" data-pal="forest" title="Forest · мох" aria-label="Forest" onclick="window.kpSetPalette('forest')"></button>
+      <button class="kp-pal" data-pal="plum" title="Plum · слива" aria-label="Plum" onclick="window.kpSetPalette('plum')"></button>
+      <button class="kp-pal" data-pal="latte" title="Latte · кофе" aria-label="Latte" onclick="window.kpSetPalette('latte')"></button>
+      <button class="kp-pal" data-pal="cyber" title="Cyber · кибер" aria-label="Cyber" onclick="window.kpSetPalette('cyber')"></button>
+      <button class="kp-pal" data-pal="sage" title="Sage · шалфей" aria-label="Sage" onclick="window.kpSetPalette('sage')"></button>
+      <button class="kp-pal" data-pal="brass" title="Brass · латунь" aria-label="Brass" onclick="window.kpSetPalette('brass')"></button>
+      <button class="kp-pal" data-pal="tricolor" title="Tricolor · чёрный + серый + белый" aria-label="Tricolor" onclick="window.kpSetPalette('tricolor')"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const NAMES = {
+    dark: 'Оригинал',
+    pro: 'Профессиональный',
+    creative: 'Творческий',
+    notion: 'Notion',
+    editorial: 'Editorial'
+  };
+  const DOTS = {
+    dark:      'linear-gradient(135deg, #A78BFA, #FF4DD8)',
+    pro:       'linear-gradient(135deg, #2553d6, #1742a8)',
+    creative:  'linear-gradient(135deg, #ff5a3c, #ffb13c)',
+    notion:    'linear-gradient(135deg, #2383e2, #0b6bcb)',
+    editorial: 'linear-gradient(135deg, #8b1a1a, #5d0d0d)'
+  };
+  const THEME_COLOR = {
+    dark: '#0a0612', pro: '#f4f5f7', creative: '#f6efe2', notion: '#ffffff', editorial: '#f1ead8'
+  };
+  function refresh() {
+    const t = document.documentElement.getAttribute('data-theme') || 'dark';
+    const p = document.documentElement.getAttribute('data-palette') || 'vermillion';
+    const name = document.getElementById('kp-theme-name');
+    const dot  = document.getElementById('kp-theme-dot');
+    if (name) name.textContent = NAMES[t] || 'Тема';
+    if (dot)  dot.style.background = DOTS[t] || DOTS.dark;
+    document.querySelectorAll('#kp-theme-menu button[data-th]').forEach(b => {
+      b.classList.toggle('active', b.dataset.th === t);
+    });
+    document.querySelectorAll('#kp-palette-row .kp-pal').forEach(b => {
+      b.classList.toggle('active', b.dataset.pal === p);
+    });
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta && THEME_COLOR[t]) meta.setAttribute('content', THEME_COLOR[t]);
+  }
+  window.kpToggleThemeMenu = function() {
+    document.getElementById('kp-theme-menu').classList.toggle('open');
+  };
+  window.kpSetTheme = function(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('kp_theme', t); } catch(e) {}
+    refresh();
+  };
+  window.kpSetPalette = function(p) {
+    document.documentElement.setAttribute('data-palette', p);
+    try { localStorage.setItem('kp_palette', p); } catch(e) {}
+    refresh();
+  };
+  // восстановить сохранённую палитру
+  try {
+    const savedPal = localStorage.getItem('kp_palette');
+    if (savedPal) document.documentElement.setAttribute('data-palette', savedPal);
+    else document.documentElement.setAttribute('data-palette', 'vermillion');
+  } catch(e) { document.documentElement.setAttribute('data-palette', 'vermillion'); }
+  document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('kp-theme-toggle');
+    if (wrap && !wrap.contains(e.target)) {
+      const m = document.getElementById('kp-theme-menu');
+      if (m) m.classList.remove('open');
+    }
+  });
+  refresh();
+})();
 </script>
 </body>
 </html>
